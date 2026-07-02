@@ -27,9 +27,13 @@
   /* --- Text (warm near-white ← ink #222 inverted) --- */
   --ink:            #f2ebe5;
   --body-text:      #c4b0a5;
-  --muted:          #8a7870;
+  --muted:          #a09088;
   --muted-soft:     #5c4e48;
   --on-rausch:      #ffffff;
+
+  /* --- Semantic (shared across games) --- */
+  --ok:             #22c55e;
+  --ng:             #ef4444;
 
   /* --- Borders --- */
   --hairline:       #2c2218;
@@ -146,7 +150,7 @@ body {
   font-size: 14px;
   font-weight: 500;
   line-height: 1.29;
-  padding: 10px 20px;
+  padding: 13px 20px;
   border-radius: var(--r-full);
   border: none;
   cursor: pointer;
@@ -176,4 +180,18 @@ body {
 }
 .back-link:active {
   color: var(--ink);
+}
+
+/* Reset button defaults when back-link is used on a <button> */
+button.back-link {
+  background: none;
+  border: none;
+  -webkit-appearance: none;
+  font-family: var(--font);
+}
+
+/* Shared screen fade utility */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
 }

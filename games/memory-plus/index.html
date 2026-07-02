@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="記憶×暗算">
@@ -15,9 +15,7 @@
 :root {
   --lit:       #f59e0b;
   --lit-dim:   rgba(245, 158, 11, 0.14);
-  --ok:        #22c55e;
   --ok-dim:    rgba(34, 197, 94, 0.14);
-  --ng:        #ef4444;
   --ng-dim:    rgba(239, 68, 68, 0.14);
 }
 
@@ -71,7 +69,7 @@
 
 /* ── Screens ── */
 .screen { display: none; flex: 1; flex-direction: column; }
-.screen.active { display: flex; }
+.screen.active { display: flex; animation: fadeIn 0.15s ease; }
 
 /* ── Title ── */
 .title-nav {
@@ -180,7 +178,7 @@
   font-size: 17px;
   font-weight: 600;
   color: var(--muted-soft);
-  transition: all 0.25s ease;
+  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
   cursor: default;
   user-select: none;
   -webkit-user-select: none;

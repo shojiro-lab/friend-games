@@ -19,20 +19,20 @@
       --p2-dim: rgba(14,165,233,.16);
     }
     .page {
-      width: 100%; max-width: 480px; margin: 0 auto;
+      width: 100%; max-width: 430px; margin: 0 auto;
       padding: calc(env(safe-area-inset-top,0px) + var(--sp-base))
                var(--sp-base)
                calc(env(safe-area-inset-bottom,0px) + var(--sp-xxl));
       display: flex; flex-direction: column; gap: var(--sp-md);
     }
-    .page-title { font-size: 24px; font-weight: 700; color: var(--ink); text-align: center; }
+    .page-title { font-size: 28px; font-weight: 700; color: var(--ink); text-align: center; }
     .page-sub { font-size: 12px; color: var(--muted); text-align: center; letter-spacing:.15em; text-transform:uppercase; margin-top:-8px; }
 
     /* rules */
     .rules-card { background:var(--surface-card); border:1px solid var(--hairline); border-radius:var(--r-md); padding:var(--sp-base); }
-    .rules-concept { font-weight:600; font-size:15px; color:var(--ink); text-align:center; margin-bottom:4px; }
+    .rules-concept { font-weight:600; font-size:16px; color:var(--ink); text-align:center; margin-bottom:var(--sp-xs); }
     .rules-hint { font-size:12px; color:var(--rausch); text-align:center; margin-bottom:var(--sp-md); }
-    .rules-list { display:flex; flex-direction:column; gap:8px; }
+    .rules-list { display:flex; flex-direction:column; gap:var(--sp-sm); }
     .rule-item { display:flex; gap:10px; align-items:flex-start; }
     .rule-num { flex-shrink:0; width:20px; height:20px; border-radius:50%; background:var(--rausch-dim); border:1px solid var(--rausch); color:var(--rausch); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; }
     .rule-text { font-size:13px; color:var(--body-text); line-height:1.6; }
@@ -53,7 +53,7 @@
     .waiting-hint { font-size:12px; color:var(--muted); text-align:center; margin-top:var(--sp-sm); }
     .waiting-dots::after { content:''; animation:dots 1.2s steps(4,end) infinite; }
     @keyframes dots { 0%,100%{content:''} 25%{content:'.'} 50%{content:'..'} 75%{content:'...'} }
-    .copy-btn { width:100%; padding:8px; border:1px solid var(--rausch); background:transparent; color:var(--rausch); font-family:var(--font); font-size:13px; border-radius:var(--r-sm); cursor:pointer; transition:all .2s; }
+    .copy-btn { width:100%; padding:8px; min-height:44px; border:1px solid var(--rausch); background:transparent; color:var(--rausch); font-family:var(--font); font-size:13px; border-radius:var(--r-sm); cursor:pointer; transition:background .2s, border-color .2s, color .2s; }
     .copy-btn:hover { background:var(--rausch-dim); }
     .copy-btn.copied { border-color:#22c55e; color:#22c55e; }
     .btn-p2 { background:var(--p2-dim); border-color:var(--p2); color:var(--p2); }
@@ -106,11 +106,11 @@
 
     /* mode toggle */
     .mtog { display:flex; gap:var(--sp-xs); }
-    .mbtn { flex:1; padding:8px 4px; background:var(--surface-card); border:1px solid var(--border); color:var(--muted); font-family:var(--font); font-size:13px; border-radius:var(--r-sm); cursor:pointer; transition:all .2s; }
+    .mbtn { flex:1; padding:8px 4px; min-height:44px; background:var(--surface-card); border:1px solid var(--border); color:var(--muted); font-family:var(--font); font-size:13px; border-radius:var(--r-sm); cursor:pointer; transition:background .2s, border-color .2s, color .2s; }
     .mbtn.on { border-color:#f59e0b; color:#f59e0b; background:rgba(245,158,11,.12); }
 
     /* buttons */
-    .gbtn { flex:1; padding:10px var(--sp-base); border:1px solid var(--border); background:var(--surface-card); color:var(--ink); font-family:var(--font); font-size:14px; border-radius:var(--r-sm); cursor:pointer; transition:all .2s; }
+    .gbtn { flex:1; padding:10px var(--sp-base); min-height:44px; border:1px solid var(--border); background:var(--surface-card); color:var(--ink); font-family:var(--font); font-size:14px; border-radius:var(--r-sm); cursor:pointer; transition:background .2s, border-color .2s, color .2s; }
     .gbtn:hover:not(:disabled) { background:var(--surface-raised); }
     .gbtn:disabled { opacity:.35; cursor:not-allowed; }
     .gbtn.primary { border-color:var(--rausch); color:var(--rausch); }
@@ -126,7 +126,7 @@
     .mv:active:not(:disabled) { transform:scale(.88); }
     .mv:disabled { opacity:.25; cursor:not-allowed; }
     .mv.center { background:transparent; border-color:transparent; pointer-events:none; font-size:11px; color:var(--muted); }
-    .turn-end-btn { padding:8px 24px; border:1px solid var(--border); background:var(--surface-card); color:var(--muted); font-family:var(--font); font-size:13px; border-radius:var(--r-sm); cursor:pointer; transition:all .2s; }
+    .turn-end-btn { padding:8px 24px; min-height:44px; border:1px solid var(--border); background:var(--surface-card); color:var(--muted); font-family:var(--font); font-size:13px; border-radius:var(--r-sm); cursor:pointer; transition:background .2s, border-color .2s, color .2s; }
     .turn-end-btn:hover:not(:disabled) { border-color:#f59e0b; color:#f59e0b; }
     .turn-end-btn:disabled { opacity:.25; cursor:not-allowed; }
 
@@ -148,7 +148,7 @@
     .fb-notice { background:rgba(245,158,11,.12); border:1px solid #f59e0b; border-radius:var(--r-sm); padding:var(--sp-md); font-size:13px; color:#f59e0b; line-height:1.7; }
     .fb-notice strong { display:block; margin-bottom:4px; }
 
-    .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--surface-raised); color:var(--ink); border:1px solid var(--border); padding:9px 18px; border-radius:var(--r-md); font-size:13px; z-index:2000; opacity:0; transition:opacity .3s; pointer-events:none; }
+    .toast { position:fixed; bottom:max(24px, env(safe-area-inset-bottom, 24px)); left:50%; transform:translateX(-50%); background:var(--surface-raised); color:var(--ink); border:1px solid var(--border); padding:9px 18px; border-radius:var(--r-md); font-size:13px; z-index:2000; opacity:0; transition:opacity .3s; pointer-events:none; }
     .toast.show { opacity:1; }
     .hidden { display:none !important; }
   </style>
@@ -389,6 +389,16 @@ function playSound(type) {
   } catch(e) {}
 }
 
+// ── Color palette (mirrors CSS tokens) ────────────────────
+const COLORS = {
+  p1:     '#ff385c',
+  p2:     '#0ea5e9',
+  ok:     '#22c55e',
+  warn:   '#f59e0b',
+  canvas: '#161210',
+  ink:    '#f2ebe5',
+};
+
 // ── State ─────────────────────────────────────────────────
 const G = 6, WMAX = 20, SETUP_TIME = 90;
 let myIndex = -1, roomCode = null, phase = 'lobby', mode = 'entry', isMyTurn = false;
@@ -454,17 +464,17 @@ function drawBoard(idx, maze, pos, posColor, posLabel, bumped, trail) {
     ctx.stroke(); ctx.restore();
   }
 
-  (maze.walls || maze.hitWalls || []).forEach(w => drawWall(ctx, cv, w, s, '#f2ebe5'));
-  if (bumped) bumped.forEach(w => drawWall(ctx, cv, w, s, '#ff385c'));
-  if (maze.entry) drawDot(ctx, cv, maze.entry.r, maze.entry.c, '#22c55e', 'IN', s);
-  if (maze.exit)  drawDot(ctx, cv, maze.exit.r,  maze.exit.c,  '#f59e0b', 'OUT', s);
+  (maze.walls || maze.hitWalls || []).forEach(w => drawWall(ctx, cv, w, s, COLORS.ink));
+  if (bumped) bumped.forEach(w => drawWall(ctx, cv, w, s, COLORS.p1));
+  if (maze.entry) drawDot(ctx, cv, maze.entry.r, maze.entry.c, COLORS.ok,   'IN',  s);
+  if (maze.exit)  drawDot(ctx, cv, maze.exit.r,  maze.exit.c,  COLORS.warn, 'OUT', s);
 
   if (pos) {
     const { x, y } = cellCenter(cv, pos.r, pos.c);
     ctx.save();
     ctx.fillStyle = posColor; ctx.shadowBlur = 14 * devicePixelRatio; ctx.shadowColor = posColor;
     ctx.beginPath(); ctx.arc(x, y, s * .27, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#161210'; ctx.font = `bold ${s * .2}px monospace`;
+    ctx.fillStyle = COLORS.canvas; ctx.font = `bold ${s * .2}px monospace`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(posLabel, x, y); ctx.restore();
   }
@@ -484,13 +494,13 @@ function drawDot(ctx, cv, r, c, color, label, s) {
   const { x, y } = cellCenter(cv, r, c);
   ctx.save(); ctx.fillStyle = color;
   ctx.beginPath(); ctx.arc(x, y, s * .22, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#161210'; ctx.font = `bold ${label === 'IN' ? s * .21 : s * .16}px monospace`;
+  ctx.fillStyle = COLORS.canvas; ctx.font = `bold ${label === 'IN' ? s * .21 : s * .16}px monospace`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, x, y); ctx.restore();
 }
 
 function drawAll() {
-  const myC = myIndex === 0 ? '#ff385c' : '#0ea5e9';
-  const opC = myIndex === 0 ? '#0ea5e9' : '#ff385c';
+  const myC = myIndex === 0 ? COLORS.p1 : COLORS.p2;
+  const opC = myIndex === 0 ? COLORS.p2 : COLORS.p1;
   if (!document.getElementById('gw0').classList.contains('hidden'))
     drawBoard(0, { walls: myMaze.walls, entry: myMaze.entry, exit: myMaze.exit }, oppPos, opC, 'OPP', myBumpedWalls, oppTrail);
   if (!document.getElementById('gw1').classList.contains('hidden'))
