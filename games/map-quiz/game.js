@@ -1,14 +1,17 @@
 'use strict';
 
 // ── State ──
-let gameMode       = null;   // 'prefecture' | 'country'
-let missLimit      = 1;
-let questions      = [];
-let currentIdx     = 0;
-let correctCount   = 0;
-let missCount      = 0;
-let topoCache      = {};
+let gameMode        = null;   // 'prefecture' | 'country'
+let missLimit       = 1;
+let questions       = [];
+let currentIdx      = 0;
+let correctCount    = 0;
+let missCount       = 0;
+let hintCount       = 0;
+let topoCache       = {};
 let isTransitioning = false;
+
+const MAX_HINTS = 3;
 
 // ── Screen ──
 function showScreen(id) {
@@ -42,44 +45,44 @@ async function startGame() {
 
   try {
     const topo     = await loadTopo(gameMode);
-    // オブジェクト名が不明な場合に備えて最初のキーにフォールバック
-    const objName  = gameMode === 'prefecture'
-      ? (topo.objects.japan ? 'japan' : Object.keys(topo.objects)[0])
-      : 'countries';
+    const objName  = topo.objects.japan ? 'japan' : Object.keys(topo.objects)[0];
     const dataList = gameMode === 'prefecture' ? PREFECTURES : COUNTRIES;
     const features = topojson.feature(topo, topo.objects[objName]).features;
 
     questions = dataList
       .map(item => {
+        // properties.id に格納（feature.id ではない）
         const feature = features.find(f =>
-          Number(f.id) === item.id ||
-          f.properties?.nam_ja === item.name   // ID不一致時のフォールバック
+          Number(f.properties?.id) === item.id ||
+          Number(f.id)             === item.id
         );
         return feature ? { ...item, feature } : null;
       })
       .filter(Boolean)
       .sort(() => Math.random() - 0.5);
 
-    if (questions.length === 0) throw new Error('no questions');
+    if (questions.length === 0) throw new Error('no questions matched');
 
     currentIdx   = 0;
     correctCount = 0;
     missCount    = 0;
+    hintCount    = 0;
 
     loading.style.display = 'none';
     content.style.display = 'flex';
     showQuestion(0);
   } catch (e) {
     loading.innerHTML =
-      '<span style="color:var(--ng);font-size:14px;text-align:center;padding:16px">データ読み込み失敗。<br>通信状況を確認してください。</span>';
+      '<span style="color:var(--ng);font-size:14px;text-align:center;padding:16px">' +
+      'データ読み込み失敗。<br>通信状況を確認してください。</span>';
   }
 }
 
 async function loadTopo(mode) {
   if (topoCache[mode]) return topoCache[mode];
-  // raw.githubusercontent.com はブロックされる場合があるため jsdelivr CDN を使用
+  // 都道府県はリポジトリ同梱のローカルファイルを使用（外部通信なし）
   const url = mode === 'prefecture'
-    ? 'https://cdn.jsdelivr.net/gh/dataofjapan/land@master/japan.topojson'
+    ? 'data/japan.topojson'
     : 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
   const resp = await fetch(url);
   if (!resp.ok) throw new Error('fetch failed');
@@ -92,10 +95,10 @@ async function loadTopo(mode) {
 function showQuestion(idx) {
   isTransitioning = false;
   updateHUD();
+  updateHintBtn();
   renderSilhouette(questions[idx].feature);
   clearInput();
   hideFeedback();
-  // フォーカスは少し遅延（アニメーション後）
   setTimeout(() => document.getElementById('answerInput').focus(), 100);
 }
 
@@ -107,6 +110,26 @@ function updateHUD() {
   missEl.style.color = missCount > 0 ? 'var(--ng)' : '';
 }
 
+// ── Hint ──
+function useHint() {
+  if (hintCount >= MAX_HINTS || isTransitioning) return;
+  hintCount++;
+  updateHintBtn();
+
+  const q  = questions[currentIdx];
+  const fb = document.getElementById('feedback');
+  fb.textContent     = `ヒント：${q.region}`;
+  fb.style.display   = 'block';
+  fb.style.color     = 'var(--hint)';
+}
+
+function updateHintBtn() {
+  const btn       = document.getElementById('hintBtn');
+  const remaining = MAX_HINTS - hintCount;
+  btn.textContent = `ヒント（残り ${remaining}）`;
+  btn.disabled    = remaining === 0;
+}
+
 // ── Silhouette ──
 function renderSilhouette(feature) {
   requestAnimationFrame(() => {
@@ -115,10 +138,8 @@ function renderSilhouette(feature) {
     const h = container.clientHeight || 260;
     container.innerHTML = '';
 
-    const pad = Math.min(w, h) * 0.07;
-    const svg = d3.select(container).append('svg')
-      .attr('width', w).attr('height', h);
-
+    const pad  = Math.min(w, h) * 0.07;
+    const svg  = d3.select(container).append('svg').attr('width', w).attr('height', h);
     const proj = d3.geoMercator()
       .fitExtent([[pad, pad], [w - pad, h - pad]], feature);
     const path = d3.geoPath().projection(proj);
@@ -141,13 +162,14 @@ function clearInput() {
 }
 
 function hideFeedback() {
-  document.getElementById('feedback').style.display = 'none';
+  const fb = document.getElementById('feedback');
+  fb.style.display = 'none';
+  fb.style.color   = 'var(--ng)';
 }
 
 function normalizeInput(str) {
   return str
     .trim()
-    // 全角英数→半角
     .replace(/[Ａ-Ｚａ-ｚ０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
     .toLowerCase()
     .replace(/\s+/g, '');
@@ -181,25 +203,20 @@ function onWrong(q) {
   document.getElementById('answerInput').style.borderColor = 'var(--ng)';
 
   const fb = document.getElementById('feedback');
-  fb.textContent = `正解：${q.name}`;
+  fb.textContent   = `正解：${q.name}`;
   fb.style.display = 'block';
+  fb.style.color   = 'var(--ng)';
 
   updateHUD();
-
-  const delay = missCount >= missLimit ? 1800 : 1800;
   setTimeout(() => {
     if (missCount >= missLimit) endGame(false);
     else advance();
-  }, delay);
+  }, 1800);
 }
 
 function advance() {
-  if (currentIdx + 1 >= questions.length) {
-    endGame(true);
-  } else {
-    currentIdx++;
-    showQuestion(currentIdx);
-  }
+  if (currentIdx + 1 >= questions.length) endGame(true);
+  else { currentIdx++; showQuestion(currentIdx); }
 }
 
 // ── End ──
@@ -210,43 +227,31 @@ function endGame(isWin) {
   const best = Math.max(prev, correctCount);
   localStorage.setItem(key, String(best));
 
-  const total    = questions.length;
-  const modeName = gameMode === 'prefecture' ? '都道府県' : '国';
-
-  document.getElementById('resultTitle').textContent  = isWin ? 'クリア！🎉' : 'ゲームオーバー';
-  document.getElementById('resultTitle').className    = 'result-title ' + (isWin ? 'correct' : 'wrong');
-  document.getElementById('resultMode').textContent   = modeName + 'モード';
-  document.getElementById('resultScore').textContent  = correctCount;
-  document.getElementById('resultTotal').textContent  = total;
-  document.getElementById('resultBest').textContent   = best;
+  document.getElementById('resultTitle').textContent = isWin ? 'クリア！🎉' : 'ゲームオーバー';
+  document.getElementById('resultTitle').className   = 'result-title ' + (isWin ? 'correct' : 'wrong');
+  document.getElementById('resultMode').textContent  =
+    (gameMode === 'prefecture' ? '都道府県' : '国') + 'モード';
+  document.getElementById('resultScore').textContent = correctCount;
+  document.getElementById('resultTotal').textContent = questions.length;
+  document.getElementById('resultBest').textContent  = best;
 }
 
-function goTitle() {
-  showScreen('screenTitle');
-}
-
-function retryGame() {
-  startGame();
-}
+function goTitle()   { showScreen('screenTitle'); }
+function retryGame() { startGame(); }
 
 // ── Init ──
 document.addEventListener('DOMContentLoaded', () => {
-  // ミス上限ボタン初期化
   selectMissLimit(1);
-
-  // Enter キーで回答
   document.getElementById('answerInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') submitAnswer();
   });
-
-  // best score をタイトルに反映
   updateTitleBest();
 });
 
 function updateTitleBest() {
-  const prefBest    = localStorage.getItem('mapquiz_best_prefecture') || '—';
-  const countryBest = localStorage.getItem('mapquiz_best_country')    || '—';
+  const p = localStorage.getItem('mapquiz_best_prefecture') || '—';
+  const c = localStorage.getItem('mapquiz_best_country')    || '—';
   const el = document.getElementById('titleBestScores');
   if (el) el.innerHTML =
-    `都道府県ベスト: <strong>${prefBest}</strong> &nbsp;|&nbsp; 国ベスト: <strong>${countryBest}</strong>`;
+    `都道府県ベスト: <strong>${p}</strong> &nbsp;|&nbsp; 国ベスト: <strong>${c}</strong>`;
 }
