@@ -42,13 +42,19 @@ async function startGame() {
 
   try {
     const topo     = await loadTopo(gameMode);
-    const objName  = gameMode === 'prefecture' ? 'japan' : 'countries';
+    // オブジェクト名が不明な場合に備えて最初のキーにフォールバック
+    const objName  = gameMode === 'prefecture'
+      ? (topo.objects.japan ? 'japan' : Object.keys(topo.objects)[0])
+      : 'countries';
     const dataList = gameMode === 'prefecture' ? PREFECTURES : COUNTRIES;
     const features = topojson.feature(topo, topo.objects[objName]).features;
 
     questions = dataList
       .map(item => {
-        const feature = features.find(f => Number(f.id) === item.id);
+        const feature = features.find(f =>
+          Number(f.id) === item.id ||
+          f.properties?.nam_ja === item.name   // ID不一致時のフォールバック
+        );
         return feature ? { ...item, feature } : null;
       })
       .filter(Boolean)
@@ -71,8 +77,9 @@ async function startGame() {
 
 async function loadTopo(mode) {
   if (topoCache[mode]) return topoCache[mode];
+  // raw.githubusercontent.com はブロックされる場合があるため jsdelivr CDN を使用
   const url = mode === 'prefecture'
-    ? 'https://raw.githubusercontent.com/dataofjapan/land/master/japan.topojson'
+    ? 'https://cdn.jsdelivr.net/gh/dataofjapan/land@master/japan.topojson'
     : 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
   const resp = await fetch(url);
   if (!resp.ok) throw new Error('fetch failed');
