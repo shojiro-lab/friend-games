@@ -1,0 +1,179 @@
+/*
+  Friends Games — Shared Design System
+  Based on AirBnB Design.md (Rausch, spacing, typography, rounded)
+  Adapted to warm dark-mode for a game app context.
+*/
+
+/* ===== Reset ===== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ===== Design Tokens ===== */
+:root {
+  /* --- Brand (AirBnB Rausch, unchanged) --- */
+  --rausch:         #ff385c;
+  --rausch-active:  #e00b41;
+  --rausch-dim:     rgba(255, 56, 92, 0.16);
+
+  /* --- Warm Dark Canvas (dark-mode adaptation of AirBnB white) --- */
+  --canvas:         #161210;
+  --surface:        #1f1914;
+  --surface-card:   #271f18;
+  --surface-raised: #322720;
+
+  /* --- Text (warm near-white ← ink #222 inverted) --- */
+  --ink:            #f2ebe5;
+  --body-text:      #c4b0a5;
+  --muted:          #8a7870;
+  --muted-soft:     #5c4e48;
+  --on-rausch:      #ffffff;
+
+  /* --- Borders --- */
+  --hairline:       #2c2218;
+  --border:         #3c2e26;
+
+  /* --- Rounded (AirBnB values, verbatim) --- */
+  --r-xs:   4px;
+  --r-sm:   8px;
+  --r-md:   14px;
+  --r-lg:   20px;
+  --r-xl:   32px;
+  --r-full: 9999px;
+
+  /* --- Spacing (AirBnB 4px base system) --- */
+  --sp-xxs:     2px;
+  --sp-xs:      4px;
+  --sp-sm:      8px;
+  --sp-md:      12px;
+  --sp-base:    16px;
+  --sp-lg:      24px;
+  --sp-xl:      32px;
+  --sp-xxl:     48px;
+  --sp-section: 64px;
+
+  /* --- Typography (AirBnB scale; Inter ≈ Cereal substitute) --- */
+  --font: 'Inter', -apple-system, BlinkMacSystemFont,
+          'Hiragino Sans', 'Noto Sans JP', sans-serif;
+
+  /* --- Single shadow tier (AirBnB dark-adapted) --- */
+  --shadow-card:    0 0 0 1px rgba(0,0,0,0.35),
+                    0 2px 8px  rgba(0,0,0,0.25),
+                    0 8px 24px rgba(0,0,0,0.45);
+  --shadow-raised:  0 0 0 1px rgba(0,0,0,0.45),
+                    0 4px 16px rgba(0,0,0,0.5),
+                    0 16px 48px rgba(0,0,0,0.6);
+}
+
+/* ===== Base ===== */
+html {
+  height: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100%;
+  min-height: -webkit-fill-available;
+}
+
+/* ===== Shared Components ===== */
+
+/* Badge — AirBnB badge token (11px / 600) */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.18;
+  padding: 3px 10px;
+  border-radius: var(--r-full);
+  white-space: nowrap;
+}
+.badge--solo {
+  background: rgba(255, 56, 92, 0.18);
+  color: #ff8fa3;
+}
+.badge--multi {
+  background: rgba(99, 179, 237, 0.15);
+  color: #7ecbea;
+}
+.badge--coming {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--muted);
+}
+
+/* Primary button — AirBnB button-primary (48px / Rausch / r-sm) */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--rausch);
+  color: var(--on-rausch);
+  font-family: var(--font);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.25;
+  padding: 14px 24px;
+  height: 48px;
+  min-width: 48px;
+  border-radius: var(--r-sm);
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s ease;
+}
+.btn-primary:active {
+  background: var(--rausch-active);
+}
+
+/* Pill button — AirBnB button-pill-rausch */
+.btn-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--rausch);
+  color: var(--on-rausch);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.29;
+  padding: 10px 20px;
+  border-radius: var(--r-full);
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s ease;
+  white-space: nowrap;
+}
+.btn-pill:active {
+  background: var(--rausch-active);
+}
+
+/* Back link — used on every game page */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-xs);
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.29;
+  padding: var(--sp-sm) 0;
+  min-height: 44px;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.12s;
+}
+.back-link:active {
+  color: var(--ink);
+}

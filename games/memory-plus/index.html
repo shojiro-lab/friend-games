@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="記憶×暗算">
+<title>記憶×暗算チャレンジ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../style.css">
+<style>
+/* ゲーム固有トークン */
+:root {
+  --lit:       #f59e0b;
+  --lit-dim:   rgba(245, 158, 11, 0.14);
+  --ok:        #22c55e;
+  --ok-dim:    rgba(34, 197, 94, 0.14);
+  --ng:        #ef4444;
+  --ng-dim:    rgba(239, 68, 68, 0.14);
+}
+
+@media (max-height: 600px) {
+  .game-title   { font-size: 20px !important; }
+  .rules-box    { padding: var(--sp-md); font-size: 13px; }
+  .countdown-num{ font-size: 52px !important; }
+  .cell         { font-size: 14px; }
+  .score-value  { font-size: 20px !important; }
+  .result-verdict { font-size: 32px !important; margin: var(--sp-md) 0 !important; }
+}
+@media (max-height: 500px) {
+  .rules-box { display: none; }
+}
+
+/* ── Shell ── */
+.wrapper {
+  max-width: 430px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--sp-base) max(var(--sp-xxl), env(safe-area-inset-bottom, 0px));
+}
+
+/* ── Score Bar (gameplay) ── */
+.score-bar {
+  display: flex;
+  justify-content: space-between;
+  padding: calc(env(safe-area-inset-top, 0px) + var(--sp-sm)) 0 var(--sp-sm);
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: var(--sp-base);
+  flex-shrink: 0;
+}
+.score-item { text-align: center; flex: 1; }
+.score-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: var(--sp-xxs);
+}
+.score-value {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+}
+
+/* ── Screens ── */
+.screen { display: none; flex: 1; flex-direction: column; }
+.screen.active { display: flex; }
+
+/* ── Title ── */
+.title-nav {
+  padding: calc(env(safe-area-inset-top, 0px) + var(--sp-base)) 0 var(--sp-xs);
+}
+.title-logo {
+  text-align: center;
+  margin: var(--sp-xl) 0 var(--sp-xl);
+}
+/* AirBnB display-xl: 28px/700 */
+.game-title {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.3px;
+  color: var(--ink);
+}
+/* AirBnB micro-label: uppercase/12px/700 */
+.game-subtitle {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: var(--sp-xs);
+}
+
+/* AirBnB property-card surface */
+.rules-box {
+  background: var(--surface-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  padding: var(--sp-base);
+  margin-bottom: var(--sp-lg);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.8;
+  color: var(--body-text);
+}
+.rules-box .hl { color: var(--rausch); font-weight: 600; }
+
+.hi-score-display {
+  text-align: center;
+  margin-bottom: var(--sp-lg);
+}
+.hi-score-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+/* AirBnB rating-display: 64px/700 — scaled down for score */
+.hi-score-value {
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  line-height: 1.1;
+  color: var(--rausch);
+  display: block;
+  margin-top: var(--sp-xs);
+}
+
+/* ── Phase label ── */
+.phase-label {
+  padding-top: calc(env(safe-area-inset-top, 0px) + var(--sp-base));
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: var(--sp-md);
+}
+
+/* ── Countdown ── */
+.countdown-wrap { text-align: center; margin-bottom: var(--sp-md); }
+.countdown-num {
+  font-size: 80px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+  display: inline-block;
+  animation: pulse 1s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1);    opacity: 1; }
+  50%       { transform: scale(1.08); opacity: 0.65; }
+}
+
+/* ── Grid ── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--sp-sm);
+  margin-bottom: var(--sp-base);
+}
+.cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--muted-soft);
+  transition: all 0.25s ease;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.cell.lit {
+  color: var(--lit);
+  background: var(--lit-dim);
+  border-color: var(--lit);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+  font-weight: 700;
+}
+
+/* ── Answer Phase ── */
+#screenAnswer {
+  justify-content: center;
+  gap: var(--sp-base);
+}
+.answer-prompt {
+  padding-top: calc(env(safe-area-inset-top, 0px) + var(--sp-base));
+  text-align: center;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.43;
+  color: var(--muted);
+}
+.answer-prompt strong { color: var(--ink); font-weight: 600; }
+
+/* AirBnB text-input proportions */
+.num-display {
+  width: 100%;
+  min-height: 72px;
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  font-size: 42px;
+  font-weight: 700;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-soft);
+  transition: color 0.1s, border-color 0.1s;
+}
+.num-display.has-val {
+  color: var(--ink);
+  border-color: var(--rausch);
+}
+
+/* Keypad — AirBnB icon-button pattern */
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-sm);
+}
+.key {
+  padding: 18px 0;
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 22px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.1s;
+}
+.key:active { background: var(--surface-raised); }
+.key.key-del {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+}
+/* AirBnB button-primary */
+.key.key-submit {
+  grid-column: span 3;
+  background: var(--rausch);
+  border-color: var(--rausch);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  padding: 16px 0;
+}
+.key.key-submit:active {
+  background: var(--rausch-active);
+  border-color: var(--rausch-active);
+}
+
+/* ── Result ── */
+.result-verdict {
+  padding-top: calc(env(safe-area-inset-top, 0px) + var(--sp-base));
+  text-align: center;
+  font-size: 42px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin: var(--sp-lg) 0 var(--sp-lg);
+}
+.result-verdict.correct { color: var(--ok); }
+.result-verdict.wrong   { color: var(--ng); }
+
+.result-info {
+  background: var(--surface-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  padding: var(--sp-base);
+  margin-bottom: var(--sp-base);
+  font-size: 14px;
+  line-height: 2;
+}
+.result-info .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.result-info .lbl {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.result-info .val {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.result-info .val.red { color: var(--ng); }
+.lit-nums {
+  color: var(--lit);
+  font-size: 13px;
+  font-weight: 500;
+  word-break: break-all;
+  margin-top: var(--sp-xs);
+}
+
+.reached-round {
+  text-align: center;
+  margin-bottom: var(--sp-lg);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.reached-round span {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--rausch);
+  display: block;
+  margin-top: var(--sp-xs);
+  line-height: 1;
+}
+
+/* ── Game Buttons ── */
+/* AirBnB button-primary */
+.game-btn {
+  display: block;
+  width: 100%;
+  height: 52px;
+  background: var(--rausch);
+  border: none;
+  border-radius: var(--r-sm);
+  color: #ffffff;
+  font-family: var(--font);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s;
+  margin-bottom: var(--sp-sm);
+}
+.game-btn:active { background: var(--rausch-active); }
+
+/* AirBnB button-secondary */
+.game-btn.ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+  height: 44px;
+  margin-bottom: 0;
+}
+.game-btn.ghost:active { background: var(--surface-raised); }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Score Bar (gameplay only) -->
+  <div class="score-bar" id="scoreBar" style="display:none">
+    <div class="score-item">
+      <span class="score-label">ラウンド</span>
+      <span class="score-value" id="sbRound">1</span>
+    </div>
+    <div class="score-item">
+      <span class="score-label">目標</span>
+      <span class="score-value" id="sbTarget">2</span>
+    </div>
+    <div class="score-item">
+      <span class="score-label">ベスト</span>
+      <span class="score-value" id="sbBest">—</span>
+    </div>
+  </div>
+
+  <!-- Title -->
+  <div class="screen active" id="screenTitle">
+    <nav class="title-nav">
+      <a class="back-link" href="../../index.html">‹ ロビーに戻る</a>
+    </nav>
+    <div class="title-logo">
+      <h1 class="game-title">記憶×暗算<br>チャレンジ</h1>
+      <div class="game-subtitle">Memory + Math</div>
+    </div>
+    <div class="rules-box">
+      <div>① <span class="hl">3秒間</span>、光る数字を記憶する</div>
+      <div>② 数字が消えたら合計値を暗算</div>
+      <div>③ 正解するとラウンドが進む</div>
+      <div>④ ラウンドが上がるほど光る数字が<span class="hl">増える</span></div>
+      <div>⑤ 不正解でゲームオーバー</div>
+    </div>
+    <div class="hi-score-display">
+      <span class="hi-score-label">ベストラウンド</span>
+      <span class="hi-score-value" id="titleBest">—</span>
+    </div>
+    <button class="game-btn" onclick="startGame()">スタート</button>
+  </div>
+
+  <!-- Memory Phase -->
+  <div class="screen" id="screenMemory">
+    <div class="phase-label">記憶フェーズ — 光る数字を覚えよう</div>
+    <div class="countdown-wrap">
+      <span class="countdown-num" id="cdNum">3</span>
+    </div>
+    <div class="grid" id="memGrid"></div>
+  </div>
+
+  <!-- Answer Phase -->
+  <div class="screen" id="screenAnswer">
+    <div class="answer-prompt">光っていた数字の<strong>合計</strong>を入力</div>
+    <div class="num-display" id="numDisplay">—</div>
+    <div class="keypad">
+      <div class="key" onclick="keyPress('1')">1</div>
+      <div class="key" onclick="keyPress('2')">2</div>
+      <div class="key" onclick="keyPress('3')">3</div>
+      <div class="key" onclick="keyPress('4')">4</div>
+      <div class="key" onclick="keyPress('5')">5</div>
+      <div class="key" onclick="keyPress('6')">6</div>
+      <div class="key" onclick="keyPress('7')">7</div>
+      <div class="key" onclick="keyPress('8')">8</div>
+      <div class="key" onclick="keyPress('9')">9</div>
+      <div class="key key-del" onclick="keyDel()">⌫ DEL</div>
+      <div class="key" onclick="keyPress('0')">0</div>
+      <div class="key key-del" onclick="keyClear()">CLR</div>
+      <div class="key key-submit" onclick="submitAnswer()">答える</div>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="screen" id="screenResult">
+    <div class="result-verdict" id="verdict"></div>
+    <div class="result-info" id="resultInfo"></div>
+    <div class="reached-round" id="reachedRound"></div>
+    <button class="game-btn" id="btnNext" onclick="nextAction()"></button>
+    <button class="game-btn ghost" onclick="goTitle()">タイトルに戻る</button>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+
+var audioCtx = null;
+var round = 1;
+var litIndices = [];
+var allNums = [];
+var correctSum = 0;
+var bestRound = 0;
+var cdTimer = null;
+var isCorrect = false;
+
+function loadBest() {
+  var v = parseInt(localStorage.getItem('mp_best') || '0', 10);
+  bestRound = isNaN(v) ? 0 : v;
+  updateBestDisplay();
+}
+function saveBest() {
+  localStorage.setItem('mp_best', String(bestRound));
+}
+function updateBestDisplay() {
+  var txt = bestRound > 0 ? String(bestRound) : '—';
+  document.getElementById('titleBest').textContent = txt;
+  document.getElementById('sbBest').textContent = bestRound > 0 ? String(bestRound) : '—';
+}
+
+function initAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+function playTone(freq, type, dur, vol) {
+  if (!audioCtx) return;
+  try {
+    var osc = audioCtx.createOscillator();
+    var gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    osc.start(audioCtx.currentTime);
+    osc.stop(audioCtx.currentTime + dur);
+  } catch(e) {}
+}
+function playTick()    { playTone(880,  'sine',     0.15, 0.3); }
+function playEnd()     { playTone(1200, 'square',   0.4,  0.25); }
+function playWrong()   { playTone(200,  'sawtooth', 0.5,  0.2); }
+function playCorrect() {
+  [523, 659, 784].forEach(function(f, i) {
+    setTimeout(function() { playTone(f, 'sine', 0.25, 0.35); }, i * 120);
+  });
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  document.getElementById('scoreBar').style.display = (id !== 'screenTitle') ? 'flex' : 'none';
+}
+function updateScoreBar() {
+  document.getElementById('sbRound').textContent = String(round);
+  document.getElementById('sbTarget').textContent = String(round + 1);
+  document.getElementById('sbBest').textContent = bestRound > 0 ? String(bestRound) : '—';
+}
+
+function shuffle(arr) {
+  for (var i = arr.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+  }
+}
+function buildGrid(id) {
+  var c = document.getElementById(id);
+  c.innerHTML = '';
+  for (var i = 0; i < 20; i++) {
+    var el = document.createElement('div');
+    el.className = 'cell' + (litIndices.indexOf(i) !== -1 ? ' lit' : '');
+    el.textContent = String(allNums[i]);
+    c.appendChild(el);
+  }
+}
+
+function startGame() {
+  initAudio();
+  round = 1;
+  beginRound();
+}
+function beginRound() {
+  updateScoreBar();
+  allNums = Array.from({length: 20}, function(_, i) { return i + 1; });
+  shuffle(allNums);
+  var idx = Array.from({length: 20}, function(_, i) { return i; });
+  shuffle(idx);
+  litIndices = idx.slice(0, round + 1);
+  correctSum = litIndices.reduce(function(s, i) { return s + allNums[i]; }, 0);
+  showScreen('screenMemory');
+  buildGrid('memGrid');
+  startCountdown();
+}
+function startCountdown() {
+  var remaining = 3;
+  document.getElementById('cdNum').textContent = String(remaining);
+  playTick();
+  cdTimer = setInterval(function() {
+    remaining--;
+    if (remaining > 0) {
+      document.getElementById('cdNum').textContent = String(remaining);
+      playTick();
+    } else {
+      clearInterval(cdTimer);
+      cdTimer = null;
+      playEnd();
+      setTimeout(showAnswerPhase, 300);
+    }
+  }, 1000);
+}
+
+var currentInput = '';
+function keyPress(d) {
+  if (currentInput.length >= 4) return;
+  currentInput += d;
+  updateDisplay();
+}
+function keyDel()   { currentInput = currentInput.slice(0, -1); updateDisplay(); }
+function keyClear() { currentInput = ''; updateDisplay(); }
+function updateDisplay() {
+  var el = document.getElementById('numDisplay');
+  el.textContent = currentInput || '—';
+  el.classList.toggle('has-val', currentInput !== '');
+}
+function showAnswerPhase() {
+  currentInput = '';
+  updateDisplay();
+  showScreen('screenAnswer');
+}
+function submitAnswer() {
+  var val = parseInt(currentInput, 10);
+  if (isNaN(val)) return;
+  isCorrect = (val === correctSum);
+  if (isCorrect) {
+    playCorrect();
+  } else {
+    playWrong();
+    if (round > bestRound) { bestRound = round; saveBest(); }
+  }
+  showResultScreen(val, isCorrect);
+}
+function showResultScreen(userVal, correct) {
+  showScreen('screenResult');
+  updateBestDisplay();
+  var verdict = document.getElementById('verdict');
+  verdict.textContent = correct ? 'CORRECT' : 'FAILED';
+  verdict.className = 'result-verdict ' + (correct ? 'correct' : 'wrong');
+
+  var litNums = litIndices.map(function(i) { return allNums[i]; }).sort(function(a,b){return a-b;});
+  var html = '<div class="row"><span class="lbl">正解</span><span class="val">' + correctSum + '</span></div>';
+  if (!correct) html += '<div class="row"><span class="lbl">あなたの入力</span><span class="val red">' + userVal + '</span></div>';
+  html += '<div class="row"><span class="lbl">光っていた数字</span></div>';
+  html += '<div class="lit-nums">[ ' + litNums.join(' + ') + ' ]</div>';
+  document.getElementById('resultInfo').innerHTML = html;
+
+  var re = document.getElementById('reachedRound');
+  if (!correct) {
+    re.innerHTML = 'REACHED ROUND<span>' + round + '</span>';
+    if (bestRound > 0) re.innerHTML += '<span style="font-size:12px;color:var(--muted);margin-top:4px;display:block;letter-spacing:1px;">BEST: ' + bestRound + '</span>';
+  } else {
+    re.innerHTML = '';
+  }
+
+  var btn = document.getElementById('btnNext');
+  btn.textContent = correct ? '次のラウンドへ' : 'もう一度';
+}
+function nextAction() {
+  if (isCorrect) { round++; beginRound(); }
+  else { round = 1; showScreen('screenTitle'); updateBestDisplay(); }
+}
+function goTitle() {
+  if (cdTimer) { clearInterval(cdTimer); cdTimer = null; }
+  round = 1;
+  showScreen('screenTitle');
+  updateBestDisplay();
+}
+
+document.addEventListener('keydown', function(e) {
+  if (!document.getElementById('screenAnswer').classList.contains('active')) return;
+  if (e.key >= '0' && e.key <= '9') keyPress(e.key);
+  else if (e.key === 'Backspace') keyDel();
+  else if (e.key === 'Enter')     submitAnswer();
+  else if (e.key === 'Escape')    keyClear();
+});
+
+loadBest();
+</script>
+</body>
+</html>
