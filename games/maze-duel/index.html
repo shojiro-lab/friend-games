@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>迷路対決 — Friends Games</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../style.css">
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --p1: var(--rausch);
+      --p2: #0ea5e9;
+      --p1-dim: var(--rausch-dim);
+      --p2-dim: rgba(14,165,233,.16);
+    }
+    .page {
+      width: 100%; max-width: 480px; margin: 0 auto;
+      padding: calc(env(safe-area-inset-top,0px) + var(--sp-base))
+               var(--sp-base)
+               calc(env(safe-area-inset-bottom,0px) + var(--sp-xxl));
+      display: flex; flex-direction: column; gap: var(--sp-md);
+    }
+    .page-title { font-size: 24px; font-weight: 700; color: var(--ink); text-align: center; }
+    .page-sub { font-size: 12px; color: var(--muted); text-align: center; letter-spacing:.15em; text-transform:uppercase; margin-top:-8px; }
+
+    /* rules */
+    .rules-card { background:var(--surface-card); border:1px solid var(--hairline); border-radius:var(--r-md); padding:var(--sp-base); }
+    .rules-concept { font-weight:600; font-size:15px; color:var(--ink); text-align:center; margin-bottom:4px; }
+    .rules-hint { font-size:12px; color:var(--rausch); text-align:center; margin-bottom:var(--sp-md); }
+    .rules-list { display:flex; flex-direction:column; gap:8px; }
+    .rule-item { display:flex; gap:10px; align-items:flex-start; }
+    .rule-num { flex-shrink:0; width:20px; height:20px; border-radius:50%; background:var(--rausch-dim); border:1px solid var(--rausch); color:var(--rausch); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+    .rule-text { font-size:13px; color:var(--body-text); line-height:1.6; }
+
+    /* volume */
+    .vol-row { display:flex; align-items:center; gap:var(--sp-sm); background:var(--surface-card); border:1px solid var(--hairline); border-radius:var(--r-sm); padding:var(--sp-sm) var(--sp-base); font-size:13px; color:var(--muted); }
+    .vol-row input[type=range] { flex:1; accent-color:var(--rausch); }
+    .vol-val { min-width:32px; text-align:right; color:var(--ink); }
+
+    /* lobby */
+    .lobby-card { background:var(--surface-card); border:1px solid var(--hairline); border-radius:var(--r-md); padding:var(--sp-base); }
+    .lobby-card h2 { font-size:11px; font-weight:700; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:var(--sp-md); }
+    .code-display { font-size:2.4rem; font-weight:700; letter-spacing:.3em; color:var(--rausch); text-align:center; padding:var(--sp-md); background:var(--rausch-dim); border:1px solid var(--rausch); border-radius:var(--r-sm); margin:var(--sp-sm) 0; }
+    .inp { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-sm); padding:var(--sp-sm) var(--sp-base); color:var(--ink); font-family:var(--font); font-size:17px; letter-spacing:.1em; text-transform:uppercase; outline:none; margin-bottom:var(--sp-sm); }
+    .inp:focus { border-color:var(--rausch); }
+    .inp::placeholder { color:var(--muted); text-transform:none; }
+    .err { font-size:13px; color:#ef4444; min-height:18px; margin-top:4px; }
+    .waiting-hint { font-size:12px; color:var(--muted); text-align:center; margin-top:var(--sp-sm); }
+    .waiting-dots::after { content:''; animation:dots 1.2s steps(4,end) infinite; }
+    @keyframes dots { 0%,100%{content:''} 25%{content:'.'} 50%{content:'..'} 75%{content:'...'} }
+    .copy-btn { width:100%; padding:8px; border:1px solid var(--rausch); background:transparent; color:var(--rausch); font-family:var(--font); font-size:13px; border-radius:var(--r-sm); cursor:pointer; transition:all .2s; }
+    .copy-btn:hover { background:var(--rausch-dim); }
+    .copy-btn.copied { border-color:#22c55e; color:#22c55e; }
+    .btn-p2 { background:var(--p2-dim); border-color:var(--p2); color:var(--p2); }
+
+    /* game screen */
+    #game { display:none; flex-direction:column; gap:var(--sp-sm); }
+    .phasebar { display:flex; gap:3px; }
+    .ph { flex:1; height:3px; background:var(--border); border-radius:2px; transition:background .4s; }
+    .ph.on { background:var(--rausch); }
+    .ph.done { background:var(--muted-soft); }
+
+    .sbox { background:var(--surface-card); border:1px solid var(--hairline); border-radius:var(--r-sm); padding:var(--sp-sm) var(--sp-base); font-size:14px; color:var(--ink); position:relative; min-height:44px; }
+    .sbox-label { position:absolute; top:-8px; left:12px; background:var(--canvas); padding:0 6px; font-size:10px; letter-spacing:.2em; color:var(--muted); }
+    .smsg.p1c { color:var(--p1); }
+    .smsg.p2c { color:var(--p2); }
+    .smsg.warnc { color:#f59e0b; }
+    .smsg.okc { color:#22c55e; }
+
+    /* player cards */
+    .pcards { display:flex; gap:var(--sp-sm); }
+    .pcard { flex:1; background:var(--surface-card); border:1px solid var(--hairline); border-radius:var(--r-sm); padding:var(--sp-sm) var(--sp-md); transition:border-color .3s,box-shadow .3s; }
+    .pcard.myturn-p1 { border-color:var(--p1); box-shadow:0 0 12px var(--p1-dim); }
+    .pcard.myturn-p2 { border-color:var(--p2); box-shadow:0 0 12px var(--p2-dim); }
+    .pcard .pname { font-size:12px; font-weight:600; margin-bottom:2px; }
+    .pcard.is-p1 .pname { color:var(--p1); }
+    .pcard.is-p2 .pname { color:var(--p2); }
+    .pcard .pinfo { font-size:11px; color:var(--muted); }
+    .prog-wrap { margin-top:6px; height:3px; background:var(--border); border-radius:2px; overflow:hidden; }
+    .prog-bar { height:100%; background:#22c55e; border-radius:2px; transition:width .3s; }
+
+    /* grids */
+    .dual { display:flex; gap:var(--sp-sm); }
+    .gw { flex:1; min-width:0; }
+    .gw.fullw { flex:none; width:100%; }
+    .glabel { font-size:11px; color:var(--muted); text-align:center; margin-bottom:4px; padding:4px 6px; border-radius:5px; transition:background .3s,color .3s; }
+    .glabel span { display:block; font-size:10px; margin-top:1px; color:var(--muted-soft); }
+    .gw.active-p1 .glabel { background:var(--p1-dim); color:var(--p1); }
+    .gw.active-p2 .glabel { background:var(--p2-dim); color:var(--p2); }
+    canvas { display:block; width:100%; border-radius:var(--r-sm); touch-action:none; cursor:pointer; }
+    .gw.active-p1 canvas { box-shadow:0 0 0 2px var(--p1); }
+    .gw.active-p2 canvas { box-shadow:0 0 0 2px var(--p2); }
+    .gw.inactive canvas { opacity:.7; box-shadow:0 0 0 1px var(--border); }
+
+    /* setup HUD */
+    .setup-hud { display:flex; justify-content:space-between; align-items:center; padding:4px var(--sp-sm); margin-bottom:4px; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-xs); font-size:13px; }
+    .hud-timer { color:#22c55e; font-weight:600; }
+    .hud-timer.warn { color:#f59e0b; }
+    .hud-timer.danger { color:#ef4444; }
+    .hud-walls { color:var(--muted); font-size:12px; }
+
+    /* mode toggle */
+    .mtog { display:flex; gap:var(--sp-xs); }
+    .mbtn { flex:1; padding:8px 4px; background:var(--surface-card); border:1px solid var(--border); color:var(--muted); font-family:var(--font); font-size:13px; border-radius:var(--r-sm); cursor:pointer; transition:all .2s; }
+    .mbtn.on { border-color:#f59e0b; color:#f59e0b; background:rgba(245,158,11,.12); }
+
+    /* buttons */
+    .gbtn { flex:1; padding:10px var(--sp-base); border:1px solid var(--border); background:var(--surface-card); color:var(--ink); font-family:var(--font); font-size:14px; border-radius:var(--r-sm); cursor:pointer; transition:all .2s; }
+    .gbtn:hover:not(:disabled) { background:var(--surface-raised); }
+    .gbtn:disabled { opacity:.35; cursor:not-allowed; }
+    .gbtn.primary { border-color:var(--rausch); color:var(--rausch); }
+    .gbtn.primary:hover:not(:disabled) { background:var(--rausch-dim); }
+    .gbtn.danger { border-color:#ef4444; color:#ef4444; }
+    .btn-row { display:flex; gap:var(--sp-sm); }
+
+    /* move pad */
+    .mpad-wrap { display:flex; flex-direction:column; align-items:center; gap:var(--sp-sm); }
+    .mpad { display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap:5px; width:144px; height:144px; }
+    .mv { background:var(--surface-card); border:1px solid var(--border); color:var(--ink); font-size:1.4rem; border-radius:var(--r-sm); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .15s; touch-action:manipulation; -webkit-tap-highlight-color:transparent; user-select:none; }
+    .mv:hover:not(:disabled) { background:var(--surface-raised); }
+    .mv:active:not(:disabled) { transform:scale(.88); }
+    .mv:disabled { opacity:.25; cursor:not-allowed; }
+    .mv.center { background:transparent; border-color:transparent; pointer-events:none; font-size:11px; color:var(--muted); }
+    .turn-end-btn { padding:8px 24px; border:1px solid var(--border); background:var(--surface-card); color:var(--muted); font-family:var(--font); font-size:13px; border-radius:var(--r-sm); cursor:pointer; transition:all .2s; }
+    .turn-end-btn:hover:not(:disabled) { border-color:#f59e0b; color:#f59e0b; }
+    .turn-end-btn:disabled { opacity:.25; cursor:not-allowed; }
+
+    /* log */
+    .logbox { background:var(--surface-card); border:1px solid var(--hairline); border-radius:var(--r-sm); padding:var(--sp-sm) var(--sp-md); font-size:12px; color:var(--muted); max-height:80px; overflow-y:auto; position:relative; }
+    .log-label { position:absolute; top:-8px; left:12px; background:var(--canvas); padding:0 6px; font-size:10px; letter-spacing:.2em; color:var(--muted); }
+    .le { margin-bottom:2px; }
+    .le.lp1 { color:var(--p1); } .le.lp2 { color:var(--p2); }
+    .le.lsys { color:var(--muted-soft); } .le.lwarn { color:#f59e0b; } .le.lok { color:#22c55e; }
+
+    /* overlays */
+    .ov { position:fixed; inset:0; background:rgba(0,0,0,.88); display:flex; align-items:center; justify-content:center; z-index:1000; padding:20px; }
+    .ovbox { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:var(--sp-xl) var(--sp-lg); max-width:340px; width:100%; text-align:center; }
+    .ovtitle { font-size:22px; font-weight:700; color:var(--ink); margin-bottom:var(--sp-sm); }
+    .ovsub { font-size:14px; color:var(--muted); line-height:1.8; margin-bottom:var(--sp-lg); white-space:pre-wrap; }
+    .ov-btns { display:flex; flex-direction:column; gap:var(--sp-sm); }
+
+    /* firebase notice */
+    .fb-notice { background:rgba(245,158,11,.12); border:1px solid #f59e0b; border-radius:var(--r-sm); padding:var(--sp-md); font-size:13px; color:#f59e0b; line-height:1.7; }
+    .fb-notice strong { display:block; margin-bottom:4px; }
+
+    .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--surface-raised); color:var(--ink); border:1px solid var(--border); padding:9px 18px; border-radius:var(--r-md); font-size:13px; z-index:2000; opacity:0; transition:opacity .3s; pointer-events:none; }
+    .toast.show { opacity:1; }
+    .hidden { display:none !important; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <a class="back-link" href="../../index.html">‹ ロビーに戻る</a>
+  <h1 class="page-title">迷路対決</h1>
+  <p class="page-sub">Maze Duel — Online 2P</p>
+
+  <div id="fbNotice" class="fb-notice hidden">
+    <strong>⚙️ Firebase 設定が必要です</strong>
+    このファイルの FIREBASE_CONFIG を設定してください。<br>
+    <a href="https://console.firebase.google.com" target="_blank" style="color:#f59e0b;text-decoration:underline">firebase.google.com</a> でプロジェクトを作成し、Realtime Database を有効にしてください。
+  </div>
+
+  <div class="rules-card">
+    <div class="rules-concept">お互いが作った迷路を、相手より先に攻略せよ。</div>
+    <div class="rules-hint">壁の位置は秘密。手探りで進め。</div>
+    <div class="rules-list">
+      <div class="rule-item"><span class="rule-num">1</span><span class="rule-text">6×6のグリッドに迷路を作る。入口・出口を決め、壁を最大20本配置。</span></div>
+      <div class="rule-item"><span class="rule-num">2</span><span class="rule-text">相手に伝わるのは入口と出口の場所だけ。壁の位置は完全に秘密。</span></div>
+      <div class="rule-item"><span class="rule-num">3</span><span class="rule-text">交互に相手の迷路を攻略。上下左右に1マスずつ移動できる。</span></div>
+      <div class="rule-item"><span class="rule-num">4</span><span class="rule-text">未知の壁に当たるとターン終了。発見済みの壁は当たっても継続。</span></div>
+      <div class="rule-item"><span class="rule-num">5</span><span class="rule-text">先に相手の出口に到達した方の勝ち！</span></div>
+    </div>
+  </div>
+
+  <div class="vol-row">
+    <span>🔊</span>
+    <input type="range" id="volSlider" min="0" max="1" step="0.05" value="0.5" oninput="setVolume(this.value)">
+    <span class="vol-val" id="volVal">50%</span>
+  </div>
+
+  <div id="lobby">
+    <div class="lobby-card">
+      <h2>新規ゲーム — 部屋を作る</h2>
+      <button class="btn-primary" style="width:100%" onclick="createRoom()">▶ 部屋を作る（PLAYER 1）</button>
+      <div id="roomCodeWrap" class="hidden" style="margin-top:var(--sp-md)">
+        <div class="code-display" id="roomCodeDisplay"></div>
+        <button class="copy-btn" id="copyBtn" onclick="copyCode()">📋 コードをコピー</button>
+        <p class="waiting-hint"><span class="waiting-dots">相手の参加を待っています</span></p>
+      </div>
+    </div>
+    <div class="lobby-card">
+      <h2>参加する — 部屋に入る</h2>
+      <input class="inp" id="codeInput" placeholder="4文字のコードを入力" maxlength="4" inputmode="text"
+        autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"
+        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
+        onkeydown="if(event.key==='Enter')joinRoom()">
+      <button class="btn-primary btn-p2" id="joinBtn" onclick="joinRoom()" style="width:100%">▶ 参加する（PLAYER 2）</button>
+      <div class="err" id="joinErr"></div>
+    </div>
+  </div>
+
+  <div id="game">
+    <div class="phasebar">
+      <div class="ph" id="ph0"></div><div class="ph" id="ph1"></div>
+      <div class="ph" id="ph2"></div><div class="ph" id="ph3"></div>
+    </div>
+    <div class="sbox">
+      <span class="sbox-label">STATUS</span>
+      <div class="smsg" id="smsg">準備中...</div>
+    </div>
+    <div class="pcards">
+      <div class="pcard" id="myCard">
+        <div class="pname" id="myName">あなた</div>
+        <div class="pinfo" id="myInfo">—</div>
+        <div class="prog-wrap hidden" id="myProgWrap"><div class="prog-bar" id="myProg" style="width:0%"></div></div>
+      </div>
+      <div class="pcard" id="oppCard">
+        <div class="pname" id="oppName">相手</div>
+        <div class="pinfo" id="oppInfo">設置中...</div>
+        <div class="prog-wrap hidden" id="oppProgWrap"><div class="prog-bar" id="oppProg" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div class="dual" id="dualWrap">
+      <div class="gw" id="gw0">
+        <div class="glabel" id="gl0">自分の迷路<span id="gs0">★ 全部見える</span></div>
+        <div class="setup-hud hidden" id="setupHud">
+          <div class="hud-timer" id="hudTimer">1:30</div>
+          <div class="hud-walls" id="hudWalls">🧱 20本残り</div>
+        </div>
+        <canvas id="cv0"></canvas>
+      </div>
+      <div class="gw hidden" id="gw1">
+        <div class="glabel" id="gl1">相手の迷路<span id="gs1">入口・出口・発見済みの壁</span></div>
+        <canvas id="cv1"></canvas>
+      </div>
+    </div>
+    <div class="mtog hidden" id="mtog">
+      <button class="mbtn on" id="mE" onclick="setMode('entry')">🚪 入口</button>
+      <button class="mbtn" id="mX" onclick="setMode('exit')">🏁 出口</button>
+      <button class="mbtn" id="mW" onclick="setMode('wall')">🧱 壁</button>
+    </div>
+    <div class="hidden" id="setupCtrl">
+      <button class="gbtn primary" id="doneBtn" onclick="submitMaze()" style="width:100%">✔ 迷路を確定する</button>
+    </div>
+    <div class="mpad-wrap hidden" id="mpadWrap">
+      <div class="mpad">
+        <div></div>
+        <button class="mv" id="mvU" onclick="tryMove(0,-1)">▲</button>
+        <div></div>
+        <button class="mv" id="mvL" onclick="tryMove(-1,0)">◀</button>
+        <div class="mv center">MOVE</div>
+        <button class="mv" id="mvR" onclick="tryMove(1,0)">▶</button>
+        <div></div>
+        <button class="mv" id="mvD" onclick="tryMove(0,1)">▼</button>
+        <div></div>
+      </div>
+      <button class="turn-end-btn" id="turnEndBtn" onclick="endMyTurn()">ターン終了</button>
+    </div>
+    <div class="logbox">
+      <span class="log-label">BATTLE LOG</span>
+      <div id="logc"></div>
+    </div>
+  </div>
+</div>
+
+<div class="ov hidden" id="winOv">
+  <div class="ovbox">
+    <div class="ovtitle" id="winTitle">🏆 勝利！</div>
+    <div class="ovsub" id="winSub"></div>
+    <div class="ov-btns">
+      <button class="gbtn primary" id="rematchBtn" onclick="requestRematch()">🔄 もう一度対戦</button>
+      <button class="gbtn" onclick="backToLobby()">🏠 ロビーに戻る</button>
+    </div>
+  </div>
+</div>
+
+<div class="ov hidden" id="rematchOv">
+  <div class="ovbox">
+    <div class="ovtitle">🔄 リマッチ申請</div>
+    <div class="ovsub">相手がもう一度対戦を申請しています。</div>
+    <div class="ov-btns">
+      <button class="gbtn primary" onclick="acceptRematch()">✔ 承諾する</button>
+      <button class="gbtn danger" onclick="declineRematch()">✗ 断る</button>
+    </div>
+  </div>
+</div>
+
+<div class="ov hidden" id="discOv">
+  <div class="ovbox">
+    <div class="ovtitle">接続が切れました</div>
+    <div class="ovsub">相手が切断しました。</div>
+    <button class="gbtn" style="width:100%" onclick="location.reload()">ロビーに戻る</button>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ============================================================
+//  FIREBASE CONFIG — ここを書き換えてください
+//  https://console.firebase.google.com でプロジェクト作成後
+//  「プロジェクトの設定 > マイアプリ > SDK の設定と構成」からコピー
+// ============================================================
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyAkR_J-GvubFY3EzrQMQpaB6oVTOShv0sg",
+  authDomain:        "friend-games-c2938.firebaseapp.com",
+  databaseURL:       "https://friend-games-c2938-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "friend-games-c2938",
+  storageBucket:     "friend-games-c2938.firebasestorage.app",
+  messagingSenderId: "854826226374",
+  appId:             "1:854826226374:web:631b0d2c4fc9bbab1b7dc7",
+};
+// ============================================================
+
+let db = null;
+function initFirebase() {
+  if (FIREBASE_CONFIG.apiKey === 'YOUR_API_KEY') {
+    document.getElementById('fbNotice').classList.remove('hidden');
+    return;
+  }
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database();
+  } catch(e) {
+    document.getElementById('fbNotice').classList.remove('hidden');
+  }
+}
+
+// ── Audio ─────────────────────────────────────────────────
+let actx = null, masterVol = 0.5;
+function getACtx() {
+  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+  return actx;
+}
+function setVolume(v) {
+  masterVol = parseFloat(v);
+  document.getElementById('volVal').textContent = Math.round(v * 100) + '%';
+}
+function playSound(type) {
+  try {
+    const ctx = getACtx();
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(masterVol * 0.4, ctx.currentTime);
+    g.connect(ctx.destination);
+    const o = ctx.createOscillator();
+    o.connect(g);
+    if (type === 'move') {
+      o.frequency.setValueAtTime(440, ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(520, ctx.currentTime + 0.08);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+      o.start(); o.stop(ctx.currentTime + 0.1);
+    } else if (type === 'wall') {
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(200, ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.15);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+      o.start(); o.stop(ctx.currentTime + 0.18);
+    } else if (type === 'win') {
+      [0, 0.12, 0.24].forEach((t, i) => {
+        const o2 = ctx.createOscillator(), g2 = ctx.createGain();
+        o2.connect(g2); g2.connect(ctx.destination);
+        o2.frequency.value = [523, 659, 784][i];
+        g2.gain.setValueAtTime(masterVol * 0.35, ctx.currentTime + t);
+        g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.3);
+        o2.start(ctx.currentTime + t); o2.stop(ctx.currentTime + t + 0.3);
+      });
+      return;
+    } else if (type === 'lose') {
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(300, ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.4);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+      o.start(); o.stop(ctx.currentTime + 0.45);
+    } else if (type === 'place') {
+      o.frequency.setValueAtTime(600, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+      o.start(); o.stop(ctx.currentTime + 0.06);
+    } else if (type === 'turn') {
+      o.frequency.setValueAtTime(330, ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.12);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+      o.start(); o.stop(ctx.currentTime + 0.15);
+    }
+  } catch(e) {}
+}
+
+// ── State ─────────────────────────────────────────────────
+const G = 6, WMAX = 20, SETUP_TIME = 90;
+let myIndex = -1, roomCode = null, phase = 'lobby', mode = 'entry', isMyTurn = false;
+const myMaze  = { entry: null, exit: null, walls: [], wallsLeft: WMAX };
+const oppView = { entry: null, exit: null, hitWalls: [] };
+let oppWallsFull = [], oppExit = null;
+let myBumpedWalls = [];
+let myPos = null, oppPos = null, myTrail = [], oppTrail = [];
+let myProgress = 0, oppProgress = 0;
+let timerInterval = null, timerRemain = SETUP_TIME;
+let listeners = [], lastBattle = null;
+
+// ── Canvas ────────────────────────────────────────────────
+const cvs  = [document.getElementById('cv0'), document.getElementById('cv1')];
+const ctxs = cvs.map(c => c.getContext('2d'));
+
+function resizeCanvas(i) {
+  const gw = document.getElementById('gw' + i);
+  if (gw.classList.contains('hidden')) return;
+  const w = gw.clientWidth;
+  cvs[i].width = cvs[i].height = w * devicePixelRatio;
+  cvs[i].style.width = cvs[i].style.height = w + 'px';
+}
+function resizeAll() { resizeCanvas(0); resizeCanvas(1); drawAll(); }
+window.addEventListener('resize', resizeAll);
+
+function cellSz(cv) { return cv.width / (G + 0.5); }
+function cellCenter(cv, r, c) {
+  const s = cellSz(cv), off = s * 0.25;
+  return { x: off + c * s + s / 2, y: off + r * s + s / 2 };
+}
+
+function drawBoard(idx, maze, pos, posColor, posLabel, bumped, trail) {
+  const cv = cvs[idx], ctx = ctxs[idx];
+  const s = cellSz(cv), off = s * 0.25;
+  ctx.clearRect(0, 0, cv.width, cv.height);
+
+  for (let r = 0; r < G; r++) for (let c = 0; c < G; c++) {
+    const x = off + c * s, y = off + r * s;
+    ctx.fillStyle = 'rgba(31,25,20,.95)';
+    ctx.fillRect(x + 1, y + 1, s - 2, s - 2);
+    ctx.strokeStyle = '#2c2218';
+    ctx.lineWidth = devicePixelRatio;
+    ctx.strokeRect(x + 1, y + 1, s - 2, s - 2);
+  }
+  ctx.font = `${s * .18}px monospace`;
+  ctx.fillStyle = '#3c2e26';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let i = 0; i < G; i++) {
+    ctx.fillText(i, off + i * s + s / 2, off * .45);
+    ctx.fillText(i, off * .45, off + i * s + s / 2);
+  }
+
+  if (trail && trail.length >= 2) {
+    ctx.save();
+    ctx.strokeStyle = posColor; ctx.lineWidth = 2.5 * devicePixelRatio;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.globalAlpha = 0.3;
+    ctx.beginPath();
+    trail.forEach((pt, i) => {
+      const { x, y } = cellCenter(cv, pt.r, pt.c);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke(); ctx.restore();
+  }
+
+  (maze.walls || maze.hitWalls || []).forEach(w => drawWall(ctx, cv, w, s, '#f2ebe5'));
+  if (bumped) bumped.forEach(w => drawWall(ctx, cv, w, s, '#ff385c'));
+  if (maze.entry) drawDot(ctx, cv, maze.entry.r, maze.entry.c, '#22c55e', 'IN', s);
+  if (maze.exit)  drawDot(ctx, cv, maze.exit.r,  maze.exit.c,  '#f59e0b', 'OUT', s);
+
+  if (pos) {
+    const { x, y } = cellCenter(cv, pos.r, pos.c);
+    ctx.save();
+    ctx.fillStyle = posColor; ctx.shadowBlur = 14 * devicePixelRatio; ctx.shadowColor = posColor;
+    ctx.beginPath(); ctx.arc(x, y, s * .27, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#161210'; ctx.font = `bold ${s * .2}px monospace`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(posLabel, x, y); ctx.restore();
+  }
+}
+
+function drawWall(ctx, cv, w, s, color) {
+  const c1 = cellCenter(cv, w.r1, w.c1), c2 = cellCenter(cv, w.r2, w.c2);
+  const mx = (c1.x + c2.x) / 2, my = (c1.y + c2.y) / 2;
+  ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 4 * devicePixelRatio; ctx.lineCap = 'round';
+  ctx.beginPath();
+  if (w.r1 === w.r2) { ctx.moveTo(mx, my - s * .44); ctx.lineTo(mx, my + s * .44); }
+  else               { ctx.moveTo(mx - s * .44, my); ctx.lineTo(mx + s * .44, my); }
+  ctx.stroke(); ctx.restore();
+}
+
+function drawDot(ctx, cv, r, c, color, label, s) {
+  const { x, y } = cellCenter(cv, r, c);
+  ctx.save(); ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(x, y, s * .22, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#161210'; ctx.font = `bold ${label === 'IN' ? s * .21 : s * .16}px monospace`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, x, y); ctx.restore();
+}
+
+function drawAll() {
+  const myC = myIndex === 0 ? '#ff385c' : '#0ea5e9';
+  const opC = myIndex === 0 ? '#0ea5e9' : '#ff385c';
+  if (!document.getElementById('gw0').classList.contains('hidden'))
+    drawBoard(0, { walls: myMaze.walls, entry: myMaze.entry, exit: myMaze.exit }, oppPos, opC, 'OPP', myBumpedWalls, oppTrail);
+  if (!document.getElementById('gw1').classList.contains('hidden'))
+    drawBoard(1, { walls: oppView.hitWalls, entry: oppView.entry, exit: oppView.exit }, myPos, myC, 'ME', null, myTrail);
+}
+
+// ── Canvas setup input ────────────────────────────────────
+cvs[0].addEventListener('click', e => handleSetupClick(e));
+cvs[0].addEventListener('touchstart', e => {
+  e.preventDefault();
+  const t = e.touches[0];
+  handleSetupClick({ clientX: t.clientX, clientY: t.clientY });
+}, { passive: false });
+
+function handleSetupClick(e) {
+  if (phase !== 'setup') return;
+  const cv = cvs[0], rect = cv.getBoundingClientRect();
+  const rawX = (e.clientX - rect.left) * (cv.width / rect.width);
+  const rawY = (e.clientY - rect.top)  * (cv.height / rect.height);
+  const s = cellSz(cv), off = s * 0.25;
+  const c = Math.floor((rawX - off) / s), r = Math.floor((rawY - off) / s);
+  if (r < 0 || r >= G || c < 0 || c >= G) return;
+
+  if (mode === 'entry') {
+    if (myMaze.exit && myMaze.exit.r === r && myMaze.exit.c === c) { setStatus('入口と出口は別のマスに', 'warnc'); return; }
+    myMaze.entry = { r, c }; playSound('place'); setStatus(`入口を (${r},${c}) に設置`, 'okc');
+  } else if (mode === 'exit') {
+    if (myMaze.entry && myMaze.entry.r === r && myMaze.entry.c === c) { setStatus('入口と出口は別のマスに', 'warnc'); return; }
+    myMaze.exit = { r, c }; playSound('place'); setStatus(`出口を (${r},${c}) に設置`, 'okc');
+  } else { placeWall(r, c, rawX, rawY, s, off); return; }
+  updateSetupProgress(); drawAll();
+}
+
+function placeWall(r, c, rawX, rawY, s, off) {
+  const lx = (rawX - off - c * s) / s, ly = (rawY - off - r * s) / s;
+  let r2 = r, c2 = c;
+  if      (lx > ly && lx < 1 - ly) r2 = r - 1;
+  else if (lx < ly && lx > 1 - ly) r2 = r + 1;
+  else if (lx < ly && lx < 1 - ly) c2 = c - 1;
+  else                               c2 = c + 1;
+  if (r2 < 0 || r2 >= G || c2 < 0 || c2 >= G) return;
+
+  const w = normWall(r, c, r2, c2), key = wKey(w);
+  const idx = myMaze.walls.findIndex(x => wKey(x) === key);
+  if (idx >= 0) {
+    myMaze.walls.splice(idx, 1); myMaze.wallsLeft++;
+    setStatus(`壁を削除（残り ${myMaze.wallsLeft}）`, 'okc');
+  } else {
+    if (myMaze.wallsLeft <= 0) { setStatus('壁は最大20本', 'warnc'); return; }
+    const test = [...myMaze.walls, w];
+    if (myMaze.entry && surrounded(myMaze.entry.r, myMaze.entry.c, test)) { setStatus('入口が囲まれます！', 'warnc'); return; }
+    if (myMaze.exit  && surrounded(myMaze.exit.r,  myMaze.exit.c,  test)) { setStatus('出口が囲まれます！', 'warnc'); return; }
+    if (myMaze.entry && myMaze.exit && !hasPath(myMaze.entry, myMaze.exit, test)) { setStatus('経路がなくなります！', 'warnc'); return; }
+    myMaze.walls.push(w); myMaze.wallsLeft--; playSound('place');
+    setStatus(`壁を設置（残り ${myMaze.wallsLeft}）`, 'okc');
+  }
+  updateSetupProgress(); drawAll();
+}
+
+function updateSetupProgress() {
+  const p = Math.round(((myMaze.entry ? 1 : 0) + (myMaze.exit ? 1 : 0) + myMaze.walls.length) / (2 + WMAX) * 100);
+  myProgress = p;
+  document.getElementById('myProg').style.width = p + '%';
+  document.getElementById('myInfo').textContent = `🧱 ${myMaze.wallsLeft}本残り`;
+  document.getElementById('hudWalls').textContent = `🧱 ${myMaze.wallsLeft}本残り`;
+  if (db && roomCode !== null) db.ref(`rooms/${roomCode}/setupProgress/${myIndex}`).set(p);
+}
+
+// ── Wall helpers ──────────────────────────────────────────
+function normWall(r1, c1, r2, c2) {
+  if (r1 > r2 || (r1 === r2 && c1 > c2)) return { r1: r2, c1: c2, r2: r1, c2: c1 };
+  return { r1, c1, r2, c2 };
+}
+function wKey(w) { return `${w.r1}_${w.c1}_${w.r2}_${w.c2}`; }
+function hasWallBetween(r1, c1, r2, c2, walls) {
+  const k = wKey(normWall(r1, c1, r2, c2));
+  return walls.some(w => wKey(w) === k);
+}
+function surrounded(r, c, walls) {
+  return [[0,1],[0,-1],[1,0],[-1,0]].every(([dr, dc]) => {
+    const nr = r + dr, nc = c + dc;
+    if (nr < 0 || nr >= G || nc < 0 || nc >= G) return true;
+    return hasWallBetween(r, c, nr, nc, walls);
+  });
+}
+function hasPath(start, end, walls) {
+  const vis = new Set([`${start.r},${start.c}`]), q = [{ ...start }];
+  while (q.length) {
+    const { r, c } = q.shift();
+    if (r === end.r && c === end.c) return true;
+    for (const [dr, dc] of [[0,1],[0,-1],[1,0],[-1,0]]) {
+      const nr = r + dr, nc = c + dc, k = `${nr},${nc}`;
+      if (nr < 0 || nr >= G || nc < 0 || nc >= G || vis.has(k) || hasWallBetween(r, c, nr, nc, walls)) continue;
+      vis.add(k); q.push({ r: nr, c: nc });
+    }
+  }
+  return false;
+}
+
+// ── Room management ───────────────────────────────────────
+function generateCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+async function createRoom() {
+  if (!db) { showToast('Firebase の設定が必要です'); return; }
+  let code, attempts = 0;
+  do {
+    code = generateCode();
+    const snap = await db.ref(`rooms/${code}`).once('value');
+    if (!snap.exists() || snap.val().phase === 'ended') break;
+    attempts++;
+  } while (attempts < 10);
+
+  myIndex = 0; roomCode = code;
+  await db.ref(`rooms/${code}`).set({
+    phase: 'lobby', players: { 0: true },
+    setupProgress: { 0: 0, 1: 0 }, setupDone: { 0: false, 1: false },
+    createdAt: Date.now(),
+  });
+  db.ref(`rooms/${code}/players/0`).onDisconnect().remove();
+  document.getElementById('roomCodeWrap').classList.remove('hidden');
+  document.getElementById('roomCodeDisplay').textContent = code;
+  listenToRoom();
+}
+
+async function joinRoom() {
+  if (!db) { showToast('Firebase の設定が必要です'); return; }
+  const input = document.getElementById('codeInput');
+  const code = input.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const errEl = document.getElementById('joinErr');
+  const btn   = document.getElementById('joinBtn');
+  if (code.length !== 4) { errEl.textContent = '4文字のコードを入力してください'; input.focus(); return; }
+  errEl.textContent = ''; btn.disabled = true; btn.textContent = '接続中...';
+  try {
+    const snap = await db.ref(`rooms/${code}`).once('value');
+    const data = snap.val();
+    if (!data) { errEl.textContent = '部屋が見つかりません'; resetJoinBtn(btn); return; }
+    if (data.players && data.players[1]) { errEl.textContent = '満員または試合中です'; resetJoinBtn(btn); return; }
+    myIndex = 1; roomCode = code;
+    await db.ref(`rooms/${code}/players/1`).set(true);
+    await db.ref(`rooms/${code}/phase`).set('setup');
+    db.ref(`rooms/${code}/players/1`).onDisconnect().remove();
+    listenToRoom();
+  } catch(e) { errEl.textContent = 'エラーが発生しました'; resetJoinBtn(btn); }
+}
+function resetJoinBtn(btn) { btn.disabled = false; btn.textContent = '▶ 参加する（PLAYER 2）'; }
+
+function copyCode() {
+  const code = document.getElementById('roomCodeDisplay').textContent;
+  const btn  = document.getElementById('copyBtn');
+  const done = () => { btn.textContent = '✔ コピーしました！'; btn.classList.add('copied'); setTimeout(() => { btn.textContent = '📋 コードをコピー'; btn.classList.remove('copied'); }, 2000); };
+  if (navigator.clipboard) navigator.clipboard.writeText(code).then(done).catch(() => legacyCopy(done));
+  else legacyCopy(done);
+}
+function legacyCopy(cb) {
+  const el = document.getElementById('roomCodeDisplay');
+  const r = document.createRange(); r.selectNode(el);
+  window.getSelection().removeAllRanges(); window.getSelection().addRange(r);
+  try { document.execCommand('copy'); cb(); } catch(e) {}
+  window.getSelection().removeAllRanges();
+}
+
+// ── Firebase listeners ────────────────────────────────────
+function listenToRoom() {
+  const ref = db.ref(`rooms/${roomCode}`);
+
+  const onPhase = snap => { if (snap.val() === 'setup' && phase === 'lobby') startSetup(); };
+  ref.child('phase').on('value', onPhase);
+  listeners.push([ref.child('phase'), 'value', onPhase]);
+
+  const onOppProg = snap => {
+    const v = snap.val() || 0;
+    document.getElementById('oppProg').style.width = v + '%';
+    document.getElementById('oppInfo').textContent = phase === 'setup' ? `設置中... ${v}%` : document.getElementById('oppInfo').textContent;
+  };
+  ref.child(`setupProgress/${1 - myIndex}`).on('value', onOppProg);
+  listeners.push([ref.child(`setupProgress/${1 - myIndex}`), 'value', onOppProg]);
+
+  const onSetupDone = snap => {
+    const d = snap.val();
+    if (d && d[0] && d[1] && phase === 'setup') initBattle();
+  };
+  ref.child('setupDone').on('value', onSetupDone);
+  listeners.push([ref.child('setupDone'), 'value', onSetupDone]);
+
+  const onBattle = snap => {
+    const b = snap.val();
+    if (!b) return;
+    if (b.initialized && phase !== 'battle' && phase !== 'ended') onBattleStart(b);
+    else if (phase === 'battle') onBattleUpdate(b);
+  };
+  ref.child('battle').on('value', onBattle);
+  listeners.push([ref.child('battle'), 'value', onBattle]);
+
+  const onRematch = snap => {
+    const r = snap.val();
+    if (!r) return;
+    if (r[1 - myIndex] && !r[myIndex] && phase === 'ended') document.getElementById('rematchOv').classList.remove('hidden');
+    if (r[0] && r[1]) { document.getElementById('rematchOv').classList.add('hidden'); resetAndRestart(); }
+  };
+  ref.child('rematch').on('value', onRematch);
+  listeners.push([ref.child('rematch'), 'value', onRematch]);
+
+  const onOppConn = snap => {
+    if (snap.val() === null && phase !== 'lobby' && phase !== 'ended')
+      document.getElementById('discOv').classList.remove('hidden');
+  };
+  ref.child(`players/${1 - myIndex}`).on('value', onOppConn);
+  listeners.push([ref.child(`players/${1 - myIndex}`), 'value', onOppConn]);
+}
+
+function detachListeners() {
+  listeners.forEach(([ref, evt, fn]) => ref.off(evt, fn));
+  listeners = [];
+}
+
+// ── Setup phase ───────────────────────────────────────────
+function startSetup() {
+  phase = 'setup'; myTrail = []; oppTrail = [];
+  document.getElementById('lobby').style.display = 'none';
+  document.getElementById('game').style.display  = 'flex';
+  document.getElementById('gw0').classList.remove('hidden');
+  document.getElementById('gw0').classList.add('fullw');
+  document.getElementById('gw1').classList.add('hidden');
+  document.getElementById('setupHud').classList.remove('hidden');
+  document.getElementById('mtog').classList.remove('hidden');
+  document.getElementById('setupCtrl').classList.remove('hidden');
+  document.getElementById('mpadWrap').classList.add('hidden');
+  document.getElementById('myProgWrap').classList.remove('hidden');
+  document.getElementById('oppProgWrap').classList.remove('hidden');
+  setPh(1);
+  setStatus(`PLAYER ${myIndex + 1}：迷路を作ってください`, myIndex === 0 ? 'p1c' : 'p2c');
+  const p1 = myIndex === 0;
+  document.getElementById('myCard').className  = `pcard is-${p1 ? 'p1' : 'p2'}`;
+  document.getElementById('oppCard').className = `pcard is-${p1 ? 'p2' : 'p1'}`;
+  document.getElementById('myName').textContent  = `◈ PLAYER ${myIndex + 1}（あなた）`;
+  document.getElementById('oppName').textContent = `◈ PLAYER ${2 - myIndex}（相手）`;
+  document.getElementById('myInfo').textContent  = `🧱 ${myMaze.wallsLeft}本残り`;
+  document.getElementById('oppInfo').textContent = '設置中... 0%';
+  resizeAll(); updateModes(); startSetupTimer();
+}
+
+function startSetupTimer() {
+  timerRemain = SETUP_TIME; clearInterval(timerInterval); updateTimerUI();
+  timerInterval = setInterval(() => {
+    timerRemain--; updateTimerUI();
+    if (timerRemain <= 0) {
+      clearInterval(timerInterval);
+      if (phase === 'setup') {
+        addLog('lwarn', '⏰ 時間切れ — 強制確定');
+        if (!myMaze.entry) myMaze.entry = { r: 0, c: 0 };
+        if (!myMaze.exit)  myMaze.exit  = { r: 5, c: 5 };
+        if (!hasPath(myMaze.entry, myMaze.exit, myMaze.walls)) { myMaze.walls = []; myMaze.wallsLeft = WMAX; }
+        submitMaze();
+      }
+    }
+  }, 1000);
+}
+
+function updateTimerUI() {
+  const el = document.getElementById('hudTimer');
+  if (!el) return;
+  el.textContent = `⏱ ${Math.floor(timerRemain / 60)}:${String(timerRemain % 60).padStart(2, '0')}`;
+  el.className = 'hud-timer' + (timerRemain <= 20 ? ' danger' : timerRemain <= 45 ? ' warn' : '');
+}
+
+function setMode(m) {
+  mode = m; updateModes();
+  setStatus({ entry: '入口マスをタップ', exit: '出口マスをタップ', wall: 'セルの端をタップで壁（再タップで削除）' }[m], 'warnc');
+}
+function updateModes() {
+  ['mE','mX','mW'].forEach((id, i) => document.getElementById(id).classList.toggle('on', ['entry','exit','wall'][i] === mode));
+}
+
+async function submitMaze() {
+  if (!myMaze.entry) { setStatus('入口を設置してください', 'warnc'); return; }
+  if (!myMaze.exit)  { setStatus('出口を設置してください', 'warnc'); return; }
+  if (!hasPath(myMaze.entry, myMaze.exit, myMaze.walls)) { setStatus('入口から出口への経路がありません！', 'warnc'); return; }
+  clearInterval(timerInterval);
+  const wallsObj = {};
+  myMaze.walls.forEach(w => { wallsObj[wKey(w)] = w; });
+  await db.ref(`rooms/${roomCode}/mazes/${myIndex}`).set({ entry: myMaze.entry, exit: myMaze.exit, walls: wallsObj });
+  await db.ref(`rooms/${roomCode}/setupDone/${myIndex}`).set(true);
+  await db.ref(`rooms/${roomCode}/setupProgress/${myIndex}`).set(100);
+  myProgress = 100;
+  document.getElementById('myProg').style.width = '100%';
+  document.getElementById('myInfo').textContent = '✔ 設置完了！';
+  document.getElementById('doneBtn').disabled = true;
+  document.getElementById('doneBtn').textContent = '✔ 送信済み — 相手を待っています';
+  setStatus('迷路を送信しました！相手の準備を待っています...', 'okc');
+  setPh(2);
+}
+
+// ── Battle init (race-safe) ───────────────────────────────
+async function initBattle() {
+  const mazesSnap = await db.ref(`rooms/${roomCode}/mazes`).once('value');
+  const mazes = mazesSnap.val();
+  if (!mazes || !mazes[0] || !mazes[1]) return;
+
+  const result = await db.ref(`rooms/${roomCode}/battle/initialized`).transaction(cur => {
+    if (cur === null) return true;
+  });
+  if (!result.committed) return;
+
+  const p0Start = mazes[1].entry;
+  const p1Start = mazes[0].entry;
+  await db.ref(`rooms/${roomCode}/battle`).set({
+    initialized: true, turn: 0,
+    positions:   { 0: p0Start, 1: p1Start },
+    hitWalls:    { 0: {}, 1: {} },
+    bumpedWalls: { 0: {}, 1: {} },
+    firstWinner: null, winner: null,
+  });
+}
+
+// ── Battle start ──────────────────────────────────────────
+async function onBattleStart(b) {
+  clearInterval(timerInterval);
+  phase = 'battle';
+  const mazesSnap = await db.ref(`rooms/${roomCode}/mazes`).once('value');
+  const mazes = mazesSnap.val();
+  const oppMaze = mazes[1 - myIndex];
+  oppWallsFull = oppMaze.walls ? Object.values(oppMaze.walls) : [];
+  oppExit = oppMaze.exit;
+  oppView.entry = oppMaze.entry; oppView.exit = oppMaze.exit; oppView.hitWalls = [];
+  myBumpedWalls = [];
+  myPos  = b.positions ? b.positions[myIndex] : null;
+  oppPos = b.positions ? b.positions[1 - myIndex] : null;
+  myTrail  = myPos  ? [{ ...myPos  }] : [];
+  oppTrail = oppPos ? [{ ...oppPos }] : [];
+  isMyTurn = b.turn === myIndex;
+
+  document.getElementById('setupHud').classList.add('hidden');
+  document.getElementById('gw0').classList.remove('fullw');
+  document.getElementById('gw1').classList.remove('hidden');
+  document.getElementById('mtog').classList.add('hidden');
+  document.getElementById('setupCtrl').classList.add('hidden');
+  document.getElementById('mpadWrap').classList.remove('hidden');
+  document.getElementById('myProgWrap').classList.add('hidden');
+  document.getElementById('oppProgWrap').classList.add('hidden');
+
+  setPh(3);
+  addLog('lsys', '=== 対戦開始！===');
+  addLog('lsys', `先攻: PLAYER ${b.turn + 1}`);
+  addLog(myIndex === 0 ? 'lp1' : 'lp2', `目標: 出口 (${oppExit.r},${oppExit.c})`);
+  updateBattleUI(); resizeAll(); drawAll();
+  lastBattle = { ...b, firstWinner: null, winner: null };
+}
+
+// ── Battle update ─────────────────────────────────────────
+function onBattleUpdate(b) {
+  if (!b || !b.initialized) return;
+
+  const newMyPos  = b.positions && b.positions[myIndex];
+  const newOppPos = b.positions && b.positions[1 - myIndex];
+
+  if (newMyPos && JSON.stringify(newMyPos) !== JSON.stringify(myPos)) {
+    myPos = newMyPos;
+    const last = myTrail[myTrail.length - 1];
+    if (!last || last.r !== myPos.r || last.c !== myPos.c) myTrail.push({ ...myPos });
+  }
+  if (newOppPos && JSON.stringify(newOppPos) !== JSON.stringify(oppPos)) {
+    oppPos = newOppPos;
+    const last = oppTrail[oppTrail.length - 1];
+    if (!last || last.r !== oppPos.r || last.c !== oppPos.c) oppTrail.push({ ...oppPos });
+    playSound('move');
+    addLog(myIndex === 0 ? 'lp2' : 'lp1', `相手: 移動`);
+  }
+
+  if (b.hitWalls && b.hitWalls[myIndex])
+    oppView.hitWalls = Object.values(b.hitWalls[myIndex]);
+  if (b.bumpedWalls && b.bumpedWalls[myIndex])
+    myBumpedWalls = Object.values(b.bumpedWalls[myIndex]);
+
+  const prevTurn = isMyTurn;
+  isMyTurn = b.turn === myIndex;
+  if (isMyTurn !== prevTurn) {
+    playSound('turn');
+    const who = isMyTurn ? 'あなたの番！' : '相手の番...';
+    addLog('lsys', `--- ${who} ---`);
+    setStatus(isMyTurn ? 'あなたの番！移動してください' : '相手のターンです...', isMyTurn ? (myIndex === 0 ? 'p1c' : 'p2c') : '');
+  }
+
+  if (b.firstWinner !== null && lastBattle && lastBattle.firstWinner === null) {
+    const firstIsMe = b.firstWinner === myIndex;
+    if (firstIsMe) { setStatus('🎯 ゴール！相手に最後のチャンス...', 'okc'); addLog('lok', '🎯 ゴール！相手の最後のターンを待っています'); }
+    else           { setStatus('⚡ 相手がゴール！あなたの最後のチャンス！', 'warnc'); addLog('lwarn', '⚡ 今すぐゴールすれば引き分け！'); playSound('wall'); }
+  }
+
+  if (b.winner !== null && b.winner !== undefined && (!lastBattle || lastBattle.winner === null || lastBattle.winner === undefined)) {
+    onGameOver(b);
+  }
+
+  lastBattle = JSON.parse(JSON.stringify(b));
+  updateBattleUI(); drawAll();
+}
+
+// ── Move ──────────────────────────────────────────────────
+function tryMove(dc, dr) {
+  if (phase !== 'battle' || !isMyTurn) return;
+  const newR = myPos.r + dr, newC = myPos.c + dc;
+  if (newR < 0 || newR >= G || newC < 0 || newC >= G) { addLog('lwarn', 'グリッド外には行けません'); return; }
+
+  const wall   = normWall(myPos.r, myPos.c, newR, newC);
+  const isWall = hasWallBetween(myPos.r, myPos.c, newR, newC, oppWallsFull);
+
+  if (isWall) {
+    const key = wKey(wall), isKnown = oppView.hitWalls.some(hw => wKey(hw) === key);
+    if (isKnown) { setStatus('その方向は既知の壁 — 別の方向へ', 'warnc'); addLog('lwarn', 'あなた: 既知の壁（ターン継続）'); }
+    else {
+      oppView.hitWalls.push(wall); playSound('wall');
+      addLog('lwarn', 'あなた: 壁を発見！ターン終了'); setStatus('壁に当たりました！ターン交代', 'warnc');
+      db.ref(`rooms/${roomCode}/battle`).once('value').then(snap => {
+        const b = snap.val(), upd = {};
+        upd[`hitWalls/${myIndex}/${key}`] = wall;
+        upd[`bumpedWalls/${1 - myIndex}/${key}`] = wall;
+        upd.turn = (b.firstWinner !== null && b.firstWinner !== myIndex) ? (upd.winner = b.firstWinner, b.firstWinner) : 1 - myIndex;
+        if (upd.winner !== undefined) delete upd.turn;
+        db.ref(`rooms/${roomCode}/battle`).update(upd);
+      });
+    }
+    drawAll(); return;
+  }
+
+  const newPos = { r: newR, c: newC };
+  myPos = newPos; myTrail.push({ ...myPos }); playSound('move');
+  addLog(myIndex === 0 ? 'lp1' : 'lp2', `あなた: (${newR},${newC}) に移動`);
+
+  if (newR === oppExit.r && newC === oppExit.c) {
+    addLog('lok', '🎯 ゴール到達！');
+    db.ref(`rooms/${roomCode}/battle`).once('value').then(snap => {
+      const b = snap.val(), upd = {};
+      upd[`positions/${myIndex}`] = newPos;
+      if (b.firstWinner === null) { upd.firstWinner = myIndex; upd.turn = 1 - myIndex; }
+      else upd.winner = -1;
+      db.ref(`rooms/${roomCode}/battle`).update(upd);
+    });
+  } else {
+    db.ref(`rooms/${roomCode}/battle/positions/${myIndex}`).set(newPos);
+  }
+  drawAll(); updateBattleUI();
+}
+
+function endMyTurn() {
+  if (phase !== 'battle' || !isMyTurn) return;
+  db.ref(`rooms/${roomCode}/battle`).once('value').then(snap => {
+    const b = snap.val();
+    if (b.firstWinner !== null && b.firstWinner !== myIndex)
+      db.ref(`rooms/${roomCode}/battle/winner`).set(b.firstWinner);
+    else
+      db.ref(`rooms/${roomCode}/battle/turn`).set(1 - myIndex);
+  });
+  addLog('lsys', 'あなた: ターン終了');
+}
+
+// ── Game over ─────────────────────────────────────────────
+async function onGameOver(b) {
+  phase = 'ended'; isMyTurn = false;
+  const isDraw = b.winner === -1, iWon = !isDraw && b.winner === myIndex;
+  playSound(isDraw ? 'turn' : iWon ? 'win' : 'lose');
+
+  const mazesSnap = await db.ref(`rooms/${roomCode}/mazes`).once('value');
+  const mazes = mazesSnap.val();
+  if (mazes && mazes[1 - myIndex]) {
+    const w = mazes[1 - myIndex].walls;
+    oppView.hitWalls = w ? Object.values(w) : [];
+  }
+  drawAll();
+
+  setTimeout(() => {
+    document.getElementById('winTitle').textContent = isDraw ? '🤝 引き分け！' : iWon ? '🏆 あなたの勝利！' : '😔 相手の勝利';
+    document.getElementById('winSub').textContent = isDraw
+      ? '同ターンで両者がゴール！\n（両方の迷路が公開されました）'
+      : iWon ? '先に相手の迷路を脱出！\n（両方の迷路が公開されました）' : '相手が先に脱出しました。\n（両方の迷路が公開されました）';
+    document.getElementById('winOv').classList.remove('hidden');
+  }, 1200);
+  updateBattleUI();
+}
+
+// ── Rematch ───────────────────────────────────────────────
+function requestRematch() {
+  if (!db || !roomCode) return;
+  db.ref(`rooms/${roomCode}/rematch/${myIndex}`).set(true);
+  document.getElementById('winOv').classList.add('hidden');
+  const btn = document.getElementById('rematchBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ 相手の承認を待っています...'; }
+  setStatus('リマッチを申請しました...', 'warnc');
+  addLog('lsys', '--- リマッチを申請しました ---');
+}
+function acceptRematch() { document.getElementById('rematchOv').classList.add('hidden'); requestRematch(); }
+function declineRematch() { document.getElementById('rematchOv').classList.add('hidden'); showToast('リマッチを断りました'); }
+
+function resetAndRestart() {
+  myMaze.entry = null; myMaze.exit = null; myMaze.walls = []; myMaze.wallsLeft = WMAX;
+  oppView.entry = null; oppView.exit = null; oppView.hitWalls = [];
+  myBumpedWalls = []; myPos = null; oppPos = null; myTrail = []; oppTrail = [];
+  myProgress = 0; oppProgress = 0; timerRemain = SETUP_TIME;
+  clearInterval(timerInterval); lastBattle = null; phase = 'lobby';
+  document.getElementById('logc').innerHTML = '';
+  document.getElementById('myProg').style.width = '0%';
+  document.getElementById('oppProg').style.width = '0%';
+  document.getElementById('winOv').classList.add('hidden');
+  document.getElementById('rematchOv').classList.add('hidden');
+  db.ref(`rooms/${roomCode}`).update({
+    phase: 'setup', setupProgress: { 0: 0, 1: 0 },
+    setupDone: { 0: false, 1: false }, battle: null, rematch: { 0: false, 1: false },
+  });
+  addLog('lsys', '=== リマッチ開始！===');
+  startSetup();
+}
+
+function backToLobby() {
+  if (db && roomCode) db.ref(`rooms/${roomCode}/players/${myIndex}`).remove();
+  location.reload();
+}
+
+// ── UI helpers ────────────────────────────────────────────
+function updateBattleUI() {
+  const active = isMyTurn && phase === 'battle';
+  ['mvU','mvD','mvL','mvR'].forEach(id => { const b = document.getElementById(id); if (b) b.disabled = !active; });
+  const eb = document.getElementById('turnEndBtn'); if (eb) eb.disabled = !active;
+
+  const gw0 = document.getElementById('gw0'), gw1 = document.getElementById('gw1');
+  const myP = myIndex === 0 ? 'p1' : 'p2', opP = myIndex === 0 ? 'p2' : 'p1';
+  if (phase === 'battle' || phase === 'ended') {
+    if (isMyTurn) {
+      gw0.className = 'gw inactive'; gw1.className = `gw active-${myP}`;
+      document.getElementById('gl1').childNodes[0].textContent = '▶ 攻略中（操作中）';
+      document.getElementById('gl0').childNodes[0].textContent = '自分の迷路（待機中）';
+    } else {
+      gw0.className = `gw active-${opP}`; gw1.className = 'gw inactive';
+      document.getElementById('gl1').childNodes[0].textContent = '相手の迷路（待機中）';
+      document.getElementById('gl0').childNodes[0].textContent = '自分の迷路（相手が攻略中）';
+    }
+  }
+  const mc = document.getElementById('myCard'), oc = document.getElementById('oppCard');
+  mc.classList.remove('myturn-p1','myturn-p2'); oc.classList.remove('myturn-p1','myturn-p2');
+  if (active) mc.classList.add(`myturn-${myP}`);
+  if (!active && phase === 'battle') oc.classList.add(`myturn-${opP}`);
+  if (phase === 'battle' || phase === 'ended') {
+    document.getElementById('myInfo').textContent  = myPos  ? `相手迷路: (${myPos.r},${myPos.c})`  : '—';
+    document.getElementById('oppInfo').textContent = oppPos ? `自分迷路: (${oppPos.r},${oppPos.c})` : '—';
+  }
+}
+
+function setStatus(msg, cls) {
+  const el = document.getElementById('smsg');
+  el.textContent = msg; el.className = 'smsg ' + (cls || '');
+}
+function setPh(step) {
+  for (let i = 0; i < 4; i++)
+    document.getElementById('ph' + i).className = 'ph' + (i < step ? ' done' : i === step ? ' on' : '');
+}
+function addLog(cls, msg) {
+  const el = document.getElementById('logc');
+  const d = document.createElement('div'); d.className = 'le ' + cls; d.textContent = msg;
+  el.appendChild(d); el.parentElement.scrollTop = 9999;
+}
+function showToast(msg) {
+  const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+document.addEventListener('DOMContentLoaded', initFirebase);
+</script>
+</body>
+</html>
