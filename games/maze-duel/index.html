@@ -804,9 +804,6 @@ async function initBattle() {
   await db.ref(`rooms/${roomCode}/battle`).set({
     initialized: true, turn: 0,
     positions:   { 0: p0Start, 1: p1Start },
-    hitWalls:    { 0: {}, 1: {} },
-    bumpedWalls: { 0: {}, 1: {} },
-    firstWinner: null, winner: null,
   });
 }
 
@@ -878,13 +875,13 @@ function onBattleUpdate(b) {
     setStatus(isMyTurn ? 'あなたの番！移動してください' : '相手のターンです...', isMyTurn ? (myIndex === 0 ? 'p1c' : 'p2c') : '');
   }
 
-  if (b.firstWinner !== null && lastBattle && lastBattle.firstWinner === null) {
+  if (b.firstWinner != null && lastBattle && lastBattle.firstWinner == null) {
     const firstIsMe = b.firstWinner === myIndex;
     if (firstIsMe) { setStatus('🎯 ゴール！相手に最後のチャンス...', 'okc'); addLog('lok', '🎯 ゴール！相手の最後のターンを待っています'); }
     else           { setStatus('⚡ 相手がゴール！あなたの最後のチャンス！', 'warnc'); addLog('lwarn', '⚡ 今すぐゴールすれば引き分け！'); playSound('wall'); }
   }
 
-  if (b.winner !== null && b.winner !== undefined && (!lastBattle || lastBattle.winner === null || lastBattle.winner === undefined)) {
+  if (b.winner != null && (!lastBattle || lastBattle.winner == null)) {
     onGameOver(b);
   }
 
@@ -911,8 +908,11 @@ function tryMove(dc, dr) {
         const b = snap.val(), upd = {};
         upd[`hitWalls/${myIndex}/${key}`] = wall;
         upd[`bumpedWalls/${1 - myIndex}/${key}`] = wall;
-        upd.turn = (b.firstWinner !== null && b.firstWinner !== myIndex) ? (upd.winner = b.firstWinner, b.firstWinner) : 1 - myIndex;
-        if (upd.winner !== undefined) delete upd.turn;
+        if (b.firstWinner != null && b.firstWinner !== myIndex) {
+          upd.winner = b.firstWinner;
+        } else {
+          upd.turn = 1 - myIndex;
+        }
         db.ref(`rooms/${roomCode}/battle`).update(upd);
       });
     }
@@ -928,7 +928,7 @@ function tryMove(dc, dr) {
     db.ref(`rooms/${roomCode}/battle`).once('value').then(snap => {
       const b = snap.val(), upd = {};
       upd[`positions/${myIndex}`] = newPos;
-      if (b.firstWinner === null) { upd.firstWinner = myIndex; upd.turn = 1 - myIndex; }
+      if (b.firstWinner == null) { upd.firstWinner = myIndex; upd.turn = 1 - myIndex; }
       else upd.winner = -1;
       db.ref(`rooms/${roomCode}/battle`).update(upd);
     });
@@ -942,7 +942,7 @@ function endMyTurn() {
   if (phase !== 'battle' || !isMyTurn) return;
   db.ref(`rooms/${roomCode}/battle`).once('value').then(snap => {
     const b = snap.val();
-    if (b.firstWinner !== null && b.firstWinner !== myIndex)
+    if (b.firstWinner != null && b.firstWinner !== myIndex)
       db.ref(`rooms/${roomCode}/battle/winner`).set(b.firstWinner);
     else
       db.ref(`rooms/${roomCode}/battle/turn`).set(1 - myIndex);
