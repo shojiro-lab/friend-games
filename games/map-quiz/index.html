@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="地図クイズ">
+  <title>地図クイズ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../style.css">
+  <style>
+    /* ── ゲーム固有トークン ── */
+    :root {
+      --ok: #22c55e;
+      --ng: #ef4444;
+    }
+
+    /* ── 全画面レイアウト ── */
+    .wrapper {
+      max-width: 430px;
+      margin: 0 auto;
+    }
+    .screen { display: none; }
+    .screen.active { display: flex; flex-direction: column; }
+
+    /* ── タイトル画面 ── */
+    #screenTitle {
+      min-height: 100dvh;
+      padding: calc(env(safe-area-inset-top,0px) + var(--sp-base)) var(--sp-base)
+               max(var(--sp-xxl), env(safe-area-inset-bottom,0px));
+    }
+    .title-nav { margin-bottom: var(--sp-sm); }
+    .title-logo { text-align: center; margin: var(--sp-xl) 0; }
+    .game-title {
+      font-size: 28px; font-weight: 700; line-height: 1.35;
+      letter-spacing: -0.3px; color: var(--ink);
+    }
+    .game-subtitle {
+      font-size: 12px; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--muted); margin-top: var(--sp-xs);
+    }
+    .title-best {
+      text-align: center; font-size: 13px; font-weight: 400;
+      color: var(--muted); margin-bottom: var(--sp-xl);
+    }
+    .title-best strong { color: var(--rausch); font-weight: 600; }
+
+    /* ── モード選択 ── */
+    #screenMode {
+      min-height: 100dvh;
+      padding: calc(env(safe-area-inset-top,0px) + var(--sp-base)) var(--sp-base)
+               max(var(--sp-xxl), env(safe-area-inset-bottom,0px));
+    }
+    .screen-header {
+      display: flex; align-items: center; gap: var(--sp-base);
+      margin-bottom: var(--sp-xl);
+    }
+    .screen-title {
+      font-size: 20px; font-weight: 700; letter-spacing: -0.2px; color: var(--ink);
+    }
+
+    /* AirBnBプロパティカード風 */
+    .mode-card {
+      background: var(--surface-card);
+      border: 1px solid var(--hairline);
+      border-radius: var(--r-md);
+      padding: var(--sp-lg);
+      margin-bottom: var(--sp-md);
+      cursor: pointer;
+      display: flex; align-items: center; gap: var(--sp-base);
+      -webkit-tap-highlight-color: transparent;
+      transition: border-color 0.12s, background 0.12s;
+      box-shadow: var(--shadow-card);
+    }
+    .mode-card:active { background: var(--surface-raised); border-color: var(--rausch); }
+    .mode-icon {
+      width: 52px; height: 52px; border-radius: var(--r-sm);
+      background: var(--rausch-dim); display: flex; align-items: center;
+      justify-content: center; font-size: 26px; flex-shrink: 0;
+    }
+    .mode-info { flex: 1; }
+    .mode-name {
+      font-size: 16px; font-weight: 600; line-height: 1.25; color: var(--ink);
+    }
+    .mode-desc {
+      font-size: 14px; font-weight: 400; line-height: 1.43;
+      color: var(--muted); margin-top: var(--sp-xxs);
+    }
+    .mode-arrow { color: var(--muted); font-size: 20px; flex-shrink: 0; }
+
+    /* ── 設定画面 ── */
+    #screenSettings {
+      min-height: 100dvh;
+      padding: calc(env(safe-area-inset-top,0px) + var(--sp-base)) var(--sp-base)
+               max(var(--sp-xxl), env(safe-area-inset-bottom,0px));
+    }
+    .settings-mode-label {
+      background: var(--rausch-dim);
+      color: var(--rausch);
+      font-size: 13px; font-weight: 600;
+      padding: var(--sp-xs) var(--sp-md);
+      border-radius: var(--r-full);
+      display: inline-block;
+      margin-bottom: var(--sp-xl);
+    }
+    .settings-section { margin-bottom: var(--sp-xl); }
+    .settings-label {
+      font-size: 12px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: var(--sp-md);
+    }
+    .miss-btns { display: flex; gap: var(--sp-sm); }
+    .miss-btn {
+      flex: 1; padding: var(--sp-md) 0;
+      background: var(--surface-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      color: var(--muted);
+      font-family: var(--font);
+      font-size: 18px; font-weight: 700;
+      text-align: center; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: all 0.12s;
+    }
+    .miss-btn.active {
+      background: var(--rausch-dim);
+      border-color: var(--rausch);
+      color: var(--rausch);
+    }
+
+    /* ── ゲーム画面 ── */
+    #screenGame {
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    /* HUD */
+    .game-hud {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: calc(env(safe-area-inset-top,0px) + var(--sp-sm)) var(--sp-base) var(--sp-sm);
+      border-bottom: 1px solid var(--hairline);
+      flex-shrink: 0; gap: var(--sp-base);
+    }
+    .hud-item { text-align: center; flex: 1; }
+    .hud-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--muted);
+      display: block; margin-bottom: var(--sp-xxs);
+    }
+    .hud-value { font-size: 18px; font-weight: 700; color: var(--ink); line-height: 1; }
+
+    /* ローディング */
+    #loadingMsg {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      color: var(--muted); font-size: 14px;
+    }
+
+    /* ゲームコンテンツ */
+    #gameContent {
+      flex: 1; min-height: 0;
+      flex-direction: column; display: none;
+    }
+
+    /* シルエット */
+    .silhouette-wrap {
+      flex: 1; min-height: 150px;
+      padding: var(--sp-sm) var(--sp-base) 0;
+    }
+    #silhouetteContainer {
+      width: 100%; height: 100%;
+    }
+
+    /* フィードバック */
+    .feedback-area {
+      padding: var(--sp-xs) var(--sp-base) 0;
+      min-height: 28px;
+      flex-shrink: 0;
+    }
+    #feedback {
+      display: none;
+      font-size: 14px; font-weight: 600;
+      color: var(--ng); text-align: center;
+    }
+
+    /* 入力エリア — キーボード表示時も下部に固定 */
+    .input-area {
+      padding: var(--sp-sm) var(--sp-base)
+               max(var(--sp-base), env(safe-area-inset-bottom,0px));
+      flex-shrink: 0;
+      display: flex; flex-direction: column; gap: var(--sp-sm);
+    }
+
+    /* AirBnBテキスト入力（font-size:16px以上でiPhoneズーム防止） */
+    #answerInput {
+      width: 100%; height: 52px;
+      background: var(--surface-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      color: var(--ink);
+      font-family: var(--font);
+      font-size: 17px; font-weight: 500;
+      padding: 0 var(--sp-base);
+      outline: none;
+      transition: border-color 0.12s;
+      -webkit-appearance: none;
+    }
+    #answerInput::placeholder { color: var(--muted-soft); font-weight: 400; }
+    #answerInput:focus { border-color: var(--rausch); }
+
+    /* 答えるボタン */
+    .btn-submit {
+      width: 100%; height: 52px;
+      background: var(--rausch); border: none;
+      border-radius: var(--r-sm);
+      color: #fff; font-family: var(--font);
+      font-size: 16px; font-weight: 500;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      transition: background 0.12s;
+    }
+    .btn-submit:active { background: var(--rausch-active); }
+
+    /* ── 結果画面 ── */
+    #screenResult {
+      min-height: 100dvh;
+      padding: calc(env(safe-area-inset-top,0px) + var(--sp-xxl)) var(--sp-base)
+               max(var(--sp-xxl), env(safe-area-inset-bottom,0px));
+      align-items: center; text-align: center;
+    }
+    .result-title {
+      font-size: 36px; font-weight: 700; letter-spacing: 1px;
+      margin-bottom: var(--sp-md);
+    }
+    .result-title.correct { color: var(--ok); }
+    .result-title.wrong   { color: var(--ng); }
+    #resultMode {
+      font-size: 13px; font-weight: 600; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: var(--sp-xl);
+    }
+    .result-card {
+      width: 100%;
+      background: var(--surface-card);
+      border: 1px solid var(--hairline);
+      border-radius: var(--r-md);
+      padding: var(--sp-lg);
+      margin-bottom: var(--sp-xl);
+    }
+    .result-row {
+      display: flex; justify-content: space-between; align-items: baseline;
+      padding: var(--sp-xs) 0;
+    }
+    .result-row + .result-row { border-top: 1px solid var(--hairline); }
+    .result-lbl {
+      font-size: 13px; font-weight: 600; letter-spacing: 0.5px;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .result-val {
+      font-size: 22px; font-weight: 700; color: var(--ink);
+    }
+    .result-val em { font-style: normal; color: var(--rausch); }
+    .result-btn {
+      width: 100%; height: 52px;
+      background: var(--rausch); border: none;
+      border-radius: var(--r-sm);
+      color: #fff; font-family: var(--font);
+      font-size: 16px; font-weight: 500;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      transition: background 0.12s; margin-bottom: var(--sp-sm);
+    }
+    .result-btn:active { background: var(--rausch-active); }
+    .result-btn.ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted); font-size: 14px; height: 44px;
+    }
+    .result-btn.ghost:active { background: var(--surface-raised); }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- ── タイトル ── -->
+  <div class="screen active" id="screenTitle">
+    <nav class="title-nav">
+      <a class="back-link" href="../../index.html">‹ ロビーに戻る</a>
+    </nav>
+    <div class="title-logo">
+      <h1 class="game-title">地図クイズ</h1>
+      <div class="game-subtitle">Silhouette Quiz</div>
+    </div>
+    <p class="title-best" id="titleBestScores">読み込み中...</p>
+    <button class="btn-primary" style="width:100%;height:52px;font-size:16px"
+            onclick="showScreen('screenMode')">モードを選ぶ</button>
+  </div>
+
+  <!-- ── モード選択 ── -->
+  <div class="screen" id="screenMode">
+    <div style="padding:calc(env(safe-area-inset-top,0px) + var(--sp-base)) var(--sp-base) max(var(--sp-xxl),env(safe-area-inset-bottom,0px))">
+      <div class="screen-header">
+        <button class="back-link" onclick="showScreen('screenTitle')" style="background:none;border:none;cursor:pointer">‹ 戻る</button>
+        <span class="screen-title">モード選択</span>
+      </div>
+
+      <div class="mode-card" onclick="selectMode('prefecture')">
+        <div class="mode-icon">🗾</div>
+        <div class="mode-info">
+          <div class="mode-name">都道府県モード</div>
+          <div class="mode-desc">47都道府県のシルエットを当てよう</div>
+        </div>
+        <span class="mode-arrow">›</span>
+      </div>
+
+      <div class="mode-card" onclick="selectMode('country')">
+        <div class="mode-icon">🌍</div>
+        <div class="mode-info">
+          <div class="mode-name">国モード</div>
+          <div class="mode-desc">世界の主要国のシルエットを当てよう</div>
+        </div>
+        <span class="mode-arrow">›</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 設定 ── -->
+  <div class="screen" id="screenSettings">
+    <div style="padding:calc(env(safe-area-inset-top,0px) + var(--sp-base)) var(--sp-base) max(var(--sp-xxl),env(safe-area-inset-bottom,0px))">
+      <div class="screen-header">
+        <button class="back-link" onclick="showScreen('screenMode')" style="background:none;border:none;cursor:pointer">‹ 戻る</button>
+        <span class="screen-title">設定</span>
+      </div>
+
+      <span class="settings-mode-label" id="settingsModeLabel">—</span>
+
+      <div class="settings-section">
+        <p class="settings-label">ミス上限</p>
+        <div class="miss-btns">
+          <button class="miss-btn" data-n="1" onclick="selectMissLimit(1)">1回</button>
+          <button class="miss-btn" data-n="2" onclick="selectMissLimit(2)">2回</button>
+          <button class="miss-btn" data-n="3" onclick="selectMissLimit(3)">3回</button>
+        </div>
+      </div>
+
+      <button class="btn-primary" style="width:100%;height:52px;font-size:16px"
+              onclick="startGame()">スタート</button>
+    </div>
+  </div>
+
+  <!-- ── ゲーム ── -->
+  <div class="screen" id="screenGame">
+    <!-- HUD -->
+    <div class="game-hud">
+      <div class="hud-item">
+        <span class="hud-label">問題</span>
+        <span class="hud-value" id="hudProgress">— / —</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">正解</span>
+        <span class="hud-value" id="hudCorrect">0</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">ミス</span>
+        <span class="hud-value" id="hudMiss">0 / 1</span>
+      </div>
+    </div>
+
+    <!-- ローディング -->
+    <div id="loadingMsg" style="display:flex">データを読み込み中...</div>
+
+    <!-- ゲーム本体 -->
+    <div id="gameContent" style="display:none;flex:1;min-height:0;flex-direction:column">
+      <div class="silhouette-wrap">
+        <div id="silhouetteContainer"></div>
+      </div>
+      <div class="feedback-area">
+        <div id="feedback"></div>
+      </div>
+      <div class="input-area">
+        <input id="answerInput" type="text" inputmode="text"
+               placeholder="名前を入力（ひらがな・漢字どちらでもOK）"
+               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <button class="btn-submit" onclick="submitAnswer()">答える</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 結果 ── -->
+  <div class="screen" id="screenResult">
+    <h2 class="result-title" id="resultTitle"></h2>
+    <p id="resultMode"></p>
+    <div class="result-card">
+      <div class="result-row">
+        <span class="result-lbl">正解数</span>
+        <span class="result-val"><em id="resultScore">0</em> / <span id="resultTotal">0</span></span>
+      </div>
+      <div class="result-row">
+        <span class="result-lbl">ベスト</span>
+        <span class="result-val" id="resultBest">0</span>
+      </div>
+    </div>
+    <button class="result-btn" onclick="retryGame()">もう一度</button>
+    <button class="result-btn ghost" onclick="goTitle()">タイトルに戻る</button>
+  </div>
+
+</div>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson@3/dist/topojson.min.js"></script>
+<script src="data/prefectures.js"></script>
+<script src="data/countries.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
