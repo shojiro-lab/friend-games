@@ -809,7 +809,7 @@ async function attack(char) {
       if (ch === char && !newRev[i][j]) {
         newRev[i][j] = true;
         justRevealedSet.add(`${i}_${j}`);
-        anyHit = true;
+        if (i !== myIdx) anyHit = true;  // 自分の単語ヒットはチェーン条件に含めない
       }
     });
   }
@@ -913,16 +913,17 @@ function requestRematch() {
   if (!roomRef) return;
   roomRef.child(`rematch/${myIdx}`).set(true);
   showToast('リマッチを要求中…');
-  roomRef.child('rematch').once('value', snap => {
+  const rematchRef = roomRef.child('rematch');
+  const handler = snap => {
     const rm  = snap.val() || {};
     const d   = currentData;
     if (!d) return;
     const cnt = Object.keys(d.players || {}).length;
     if (Object.keys(rm).length >= cnt && isHost) {
-      const theme = shuffle(TOPICS)[0];
+      rematchRef.off('value', handler);
       roomRef.update({
         phase:       'writing',
-        theme,
+        theme:       shuffle(TOPICS)[0],
         words:       null,
         writingDone: null,
         revealed:    null,
@@ -933,7 +934,8 @@ function requestRematch() {
         rematch:     null,
       });
     }
-  });
+  };
+  rematchRef.on('value', handler);
 }
 
 // ── Utilities ─────────────────────────────────────────────

@@ -823,7 +823,6 @@ async function initBattle() {
 // ── Battle start ──────────────────────────────────────────
 async function onBattleStart(b) {
   clearInterval(timerInterval);
-  phase = 'battle';
   const mazesSnap = await db.ref(`rooms/${roomCode}/mazes`).once('value');
   const mazes = mazesSnap.val();
   const oppMaze = mazes[1 - myIndex];
@@ -833,6 +832,7 @@ async function onBattleStart(b) {
   myBumpedWalls = [];
   myPos  = b.positions ? b.positions[myIndex] : null;
   oppPos = b.positions ? b.positions[1 - myIndex] : null;
+  phase = 'battle';
   myTrail  = myPos  ? [{ ...myPos  }] : [];
   oppTrail = oppPos ? [{ ...oppPos }] : [];
   isMyTurn = b.turn === myIndex;
@@ -918,7 +918,9 @@ function tryMove(dc, dr) {
       oppView.hitWalls.push(wall); playSound('wall');
       addLog('lwarn', 'あなた: 壁を発見！ターン終了'); setStatus('壁に当たりました！ターン交代', 'warnc');
       db.ref(`rooms/${roomCode}/battle`).once('value').then(snap => {
-        const b = snap.val(), upd = {};
+        const b = snap.val();
+        if (!b) return;
+        const upd = {};
         upd[`hitWalls/${myIndex}/${key}`] = wall;
         upd[`bumpedWalls/${1 - myIndex}/${key}`] = wall;
         if (b.firstWinner != null && b.firstWinner !== myIndex) {
@@ -939,7 +941,9 @@ function tryMove(dc, dr) {
   if (newR === oppExit.r && newC === oppExit.c) {
     addLog('lok', '🎯 ゴール到達！');
     db.ref(`rooms/${roomCode}/battle`).once('value').then(snap => {
-      const b = snap.val(), upd = {};
+      const b = snap.val();
+      if (!b) return;
+      const upd = {};
       upd[`positions/${myIndex}`] = newPos;
       if (b.firstWinner == null) { upd.firstWinner = myIndex; upd.turn = 1 - myIndex; }
       else upd.winner = -1;
@@ -955,6 +959,7 @@ function endMyTurn() {
   if (phase !== 'battle' || !isMyTurn) return;
   db.ref(`rooms/${roomCode}/battle`).once('value').then(snap => {
     const b = snap.val();
+    if (!b) return;
     if (b.firstWinner != null && b.firstWinner !== myIndex)
       db.ref(`rooms/${roomCode}/battle/winner`).set(b.firstWinner);
     else

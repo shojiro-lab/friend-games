@@ -641,6 +641,9 @@ function startGameListeners() {
 // ── Main data handler ─────────────────────────────────────
 function handleData(d) {
   if (!d || !d.phase) return;
+  if (d.course && !Array.isArray(d.course)) {
+    d.course = Object.keys(d.course).sort((a, b) => +a - +b).map(k => d.course[k]);
+  }
   if (d.phase === 'playing') {
     renderGame(d);
     // Auto-step for current player
@@ -719,8 +722,9 @@ async function autoDone(d) {
   // Advance to next non-returned player
   const pKeys = Object.keys(players).map(Number).sort((a, b) => a - b);
   let next = d.turn;
+  const curIdx = pKeys.indexOf(d.turn);
   for (let i = 1; i <= pKeys.length; i++) {
-    const candidate = (d.turn + i) % pKeys.length;
+    const candidate = pKeys[(curIdx + i) % pKeys.length];
     if (!players[candidate] || players[candidate].returned) continue;
     next = candidate;
     break;

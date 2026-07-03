@@ -436,6 +436,7 @@ async function joinRoom() {
     myIdx = 1;
     roomCode = code;
     roomRef = db.ref(`tagiron/${code}`);
+    roomRef.child('players/1').onDisconnect().remove();
 
     // 4. ゲーム開始を待つ（.on('value') は現在値をすぐ返すため race condition 対応済み）
     roomRef.child('phase').on('value', phaseSnap => {
