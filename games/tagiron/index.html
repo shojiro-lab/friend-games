@@ -362,7 +362,13 @@ let resultShown = false;
 let declAvail = [], declSel = []; // declAvail: array of {tile, el}
 
 // ── Lobby ─────────────────────────────────────────────────
-const myCreateCode = Math.random().toString(36).substring(2,6).toUpperCase();
+function randomCode() {
+  const ch = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 32 chars, no O/0/I/1 confusion
+  let s = '';
+  for (let i = 0; i < 4; i++) s += ch[Math.floor(Math.random() * ch.length)];
+  return s;
+}
+const myCreateCode = randomCode();
 
 (function initLobby() {
   myIdx = 0;
@@ -373,14 +379,16 @@ const myCreateCode = Math.random().toString(36).substring(2,6).toUpperCase();
   roomRef.child('players/0').set(true);
   roomRef.onDisconnect().remove();
 
-  // Wait for player 1
-  roomRef.child('players/1').on('value', snap => {
+  // Wait for player 1 (store ref so we can .off() by path)
+  const p1Ref = roomRef.child('players/1');
+  p1Ref.on('value', snap => {
     if (snap.val()) {
-      roomRef.child('players/1').off();
+      p1Ref.off();
       initGame();
     }
   });
 
+  // Watch for game start (triggered by initGame)
   roomRef.child('phase').on('value', snap => {
     if (snap.val() === 'playing' && phase === 'lobby') {
       phase = 'playing';
@@ -390,32 +398,49 @@ const myCreateCode = Math.random().toString(36).substring(2,6).toUpperCase();
 })();
 
 async function joinRoom() {
-  const code = document.getElementById('codeInput').value.trim().toUpperCase();
+  const code = document.getElementById('codeInput').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
   const errEl = document.getElementById('joinErr');
+  const btn   = document.querySelector('#lobby .lobby-card:last-child .btn-primary');
   errEl.textContent = '';
   if (code.length !== 4) { errEl.textContent = '4桁のコードを入力してください'; return; }
+  if (code === myCreateCode) { errEl.textContent = '自分のコードには参加できません'; return; }
 
-  const snap = await db.ref(`tagiron/${code}/players/0`).once('value');
-  if (!snap.val()) { errEl.textContent = '部屋が見つかりません'; return; }
-  const snap2 = await db.ref(`tagiron/${code}/players/1`).once('value');
-  if (snap2.val()) { errEl.textContent = '部屋が満員です'; return; }
-
-  // Leave created room
-  roomRef.off();
-  db.ref(`tagiron/${myCreateCode}`).remove();
-
-  myIdx = 1;
-  roomCode = code;
-  roomRef = db.ref(`tagiron/${code}`);
-
-  await roomRef.child('players/1').set(true);
-
-  roomRef.child('phase').on('value', snap => {
-    if (snap.val() === 'playing' && phase === 'lobby') {
-      phase = 'playing';
-      startGame();
+  btn.disabled = true; btn.textContent = '接続中…';
+  try {
+    // Read whole room at once
+    const snap = await db.ref(`tagiron/${code}`).once('value');
+    const data = snap.val();
+    if (!data || !data.players || !data.players['0']) {
+      errEl.textContent = '部屋が見つかりません'; btn.disabled = false; btn.textContent = '参加する'; return;
     }
-  });
+    if (data.players['1']) {
+      errEl.textContent = '部屋が満員です'; btn.disabled = false; btn.textContent = '参加する'; return;
+    }
+
+    // Leave own created room — turn off child listeners explicitly
+    roomRef.child('players/1').off();
+    roomRef.child('phase').off();
+    db.ref(`tagiron/${myCreateCode}`).remove();
+
+    myIdx = 1;
+    roomCode = code;
+    roomRef = db.ref(`tagiron/${code}`);
+
+    await roomRef.child('players/1').set(true);
+
+    // Watch for game start
+    roomRef.child('phase').on('value', snap => {
+      if (snap.val() === 'playing' && phase === 'lobby') {
+        phase = 'playing';
+        startGame();
+      }
+    });
+
+  } catch (e) {
+    console.error('joinRoom error:', e);
+    errEl.textContent = 'エラーが発生しました: ' + (e.message || e);
+    btn.disabled = false; btn.textContent = '参加する';
+  }
 }
 
 function copyCode() {
