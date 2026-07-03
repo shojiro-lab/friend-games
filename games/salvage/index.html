@@ -606,6 +606,7 @@ async function hostStart() {
       roundEnding: false,
       turn: 0,
       step: 'reduce',
+      turnSeq: 0,
       diceRoll: null,
       course,
     });
@@ -636,7 +637,7 @@ function handleData(d) {
     renderGame(d);
     // Auto-step for current player
     if (d.turn === myIdx && (d.step === 'reduce' || d.step === 'done')) {
-      const stepId = `${d.round}-${d.turn}-${d.step}-${JSON.stringify(d.diceRoll)}`;
+      const stepId = `${d.round}-${d.turnSeq || 0}-${d.turn}-${d.step}`;
       if (!processed.has(stepId)) {
         processed.add(stepId);
         if (d.step === 'reduce') autoReduce(d);
@@ -720,6 +721,7 @@ async function autoDone(d) {
   await roomRef.update({
     turn: next,
     step: 'reduce',
+    turnSeq: (d.turnSeq || 0) + 1,
     diceRoll: null,
   });
 }
@@ -830,6 +832,7 @@ async function nextRound() {
     roundEnding: false,
     turn: nextFirst,
     step: 'reduce',
+    turnSeq: 0,
     diceRoll: null,
     roundEndData: null,
     nextFirst: null,
@@ -966,6 +969,7 @@ async function requestRematch() {
     roundEnding: false,
     turn: 0,
     step: 'reduce',
+    turnSeq: 0,
     diceRoll: null,
     roundEndData: null,
     nextFirst: null,
