@@ -1,4 +1,4 @@
-const CACHE = 'fg-v3';
+const CACHE = 'fg-v4';
 const PRECACHE = [
   '/friend-games/',
   '/friend-games/index.html',
@@ -12,6 +12,7 @@ const PRECACHE = [
   '/friend-games/games/tagiron/index.html',
   '/friend-games/games/aiue-battle/index.html',
   '/friend-games/games/aiue-battle/data/topics.js',
+  '/friend-games/games/salvage/index.html',
 ];
 
 self.addEventListener('install', e => {

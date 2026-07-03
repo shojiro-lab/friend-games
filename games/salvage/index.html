@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>サルベージ — Friends Games</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../style.css">
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <style>
+    /* ── Layout ── */
+    .page {
+      width: 100%; max-width: 430px; margin: 0 auto;
+      padding: calc(env(safe-area-inset-top,0px) + var(--sp-base))
+               var(--sp-base)
+               calc(env(safe-area-inset-bottom,0px) + var(--sp-xxl));
+      display: flex; flex-direction: column; gap: var(--sp-md);
+    }
+    .page-title { font-size: 28px; font-weight: 700; color: var(--ink); text-align: center; }
+    .page-sub   { font-size: 12px; color: var(--muted); text-align: center;
+                  letter-spacing: .15em; text-transform: uppercase; margin-top: -8px; }
+    .hidden { display: none !important; }
+
+    /* ── Lobby ── */
+    .lcard { background: var(--surface-card); border: 1px solid var(--hairline);
+             border-radius: var(--r-md); padding: var(--sp-base); }
+    .lcard h2 { font-size: 11px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+                color: var(--muted); margin-bottom: var(--sp-md); }
+    .code-disp { font-size: 2.4rem; font-weight: 700; letter-spacing: .3em; color: var(--rausch);
+                 text-align: center; padding: var(--sp-md); background: var(--rausch-dim);
+                 border: 1px solid var(--rausch); border-radius: var(--r-sm); margin: var(--sp-sm) 0; }
+    .inp { width: 100%; background: var(--surface); border: 1px solid var(--border);
+           border-radius: var(--r-sm); padding: var(--sp-sm) var(--sp-base); color: var(--ink);
+           font-family: var(--font); font-size: 17px; outline: none;
+           margin-bottom: var(--sp-sm); min-height: 44px; box-sizing: border-box; }
+    .inp:focus { border-color: var(--rausch); }
+    .inp.code-inp { letter-spacing: .1em; text-transform: uppercase; }
+    .inp.code-inp::placeholder { text-transform: none; letter-spacing: 0; }
+    .copy-btn { width: 100%; padding: 8px; min-height: 44px; border: 1px solid var(--rausch);
+                background: transparent; color: var(--rausch); font-family: var(--font); font-size: 13px;
+                border-radius: var(--r-sm); cursor: pointer; transition: background .2s; }
+    .copy-btn:hover { background: var(--rausch-dim); }
+    .copy-btn.copied { border-color: var(--ok); color: var(--ok); }
+    .or-div { display: flex; align-items: center; gap: var(--sp-sm); color: var(--muted); font-size: 13px; }
+    .or-div::before,.or-div::after { content: ''; flex: 1; height: 1px; background: var(--hairline); }
+    .err { font-size: 13px; color: var(--ng); min-height: 18px; margin-top: 4px; }
+    .plist { display: flex; flex-direction: column; gap: 6px; margin: var(--sp-sm) 0; }
+    .prow  { display: flex; align-items: center; gap: var(--sp-sm); padding: var(--sp-xs) var(--sp-sm);
+             background: var(--surface-raised); border-radius: var(--r-sm); }
+    .prow-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .pname { font-size: 14px; font-weight: 500; color: var(--ink); flex: 1; }
+    .phst  { font-size: 11px; color: var(--rausch); font-weight: 600; }
+    .wh    { font-size: 12px; color: var(--muted); text-align: center; margin-top: var(--sp-sm); }
+    .dots::after { content: ''; animation: dots 1.2s steps(4,end) infinite; }
+    @keyframes dots { 0%,100%{content:''} 25%{content:'.'} 50%{content:'..'} 75%{content:'...'} }
+
+    /* ── Game layout ── */
+    #gameScreen {
+      display: flex; flex-direction: column; height: 100dvh;
+      max-width: 430px; margin: 0 auto;
+      overflow: hidden;
+    }
+
+    /* Header */
+    .g-header {
+      flex-shrink: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--hairline);
+      padding: calc(env(safe-area-inset-top,0px) + 10px) var(--sp-base) 10px;
+      z-index: 10;
+    }
+    .g-header-top {
+      display: flex; align-items: center; gap: var(--sp-sm); margin-bottom: 8px;
+    }
+    .g-round-info {
+      font-size: 12px; color: var(--muted); font-weight: 600;
+      letter-spacing: .12em; text-transform: uppercase; flex: 1;
+    }
+    .g-turn-info {
+      font-size: 13px; color: var(--body-text);
+    }
+    .g-turn-info.myturn { color: var(--rausch); font-weight: 600; }
+
+    /* Air gauge */
+    .air-wrap { display: flex; align-items: center; gap: var(--sp-sm); }
+    .air-icon { font-size: 20px; flex-shrink: 0; }
+    .air-num  { font-size: 24px; font-weight: 700; color: var(--ink); min-width: 40px; }
+    .air-bar-bg {
+      flex: 1; height: 8px; background: var(--surface-raised);
+      border-radius: var(--r-full); overflow: hidden;
+    }
+    .air-bar-fill {
+      height: 100%; border-radius: var(--r-full);
+      transition: width .4s ease, background .4s ease;
+    }
+
+    /* Course (scrollable) */
+    .g-course-wrap {
+      flex: 1; overflow-y: auto; overflow-x: hidden;
+      background: linear-gradient(180deg, #0a2a4a 0%, #051828 40%, #020d18 100%);
+      -webkit-overflow-scrolling: touch;
+    }
+    .course-inner {
+      padding: var(--sp-sm) 0;
+    }
+
+    /* Sub row */
+    .sub-row {
+      display: flex; align-items: center;
+      padding: 6px var(--sp-base);
+      gap: var(--sp-sm);
+      background: rgba(0,0,0,0.35);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .sub-row.current-turn { background: rgba(255,56,92,0.12); outline: 1px solid rgba(255,56,92,0.4); }
+    .sub-row.current-me   { background: rgba(255,56,92,0.18); outline: 2px solid var(--rausch); }
+
+    .sub-depth {
+      font-size: 10px; color: rgba(255,255,255,0.3);
+      width: 24px; text-align: right; flex-shrink: 0;
+    }
+    .chip-icon {
+      width: 32px; height: 32px; border-radius: var(--r-xs);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; flex-shrink: 0;
+      position: relative;
+    }
+    .chip-icon.l1 { background: rgba(34,197,94,0.25); color: #4ade80; border: 1px solid rgba(34,197,94,0.4); }
+    .chip-icon.l2 { background: rgba(234,179,8,0.25); color: #fbbf24; border: 1px solid rgba(234,179,8,0.4); }
+    .chip-icon.l3 { background: rgba(249,115,22,0.25); color: #fb923c; border: 1px solid rgba(249,115,22,0.4); }
+    .chip-icon.l4 { background: rgba(239,68,68,0.25); color: #f87171; border: 1px solid rgba(239,68,68,0.4); }
+    .chip-icon.blank { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.08); }
+    .bundle-badge {
+      position: absolute; top: -4px; right: -4px;
+      background: var(--rausch); color: #fff;
+      font-size: 9px; font-weight: 700; border-radius: var(--r-full);
+      padding: 0 4px; min-width: 16px; height: 14px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .chip-label {
+      flex: 1; font-size: 12px; color: rgba(255,255,255,0.6);
+    }
+    .chip-label.blank-lbl { color: rgba(255,255,255,0.2); }
+    .chip-score {
+      font-size: 12px; font-weight: 600;
+      color: rgba(255,255,255,0.5);
+      min-width: 28px; text-align: right;
+    }
+    .player-icons {
+      display: flex; gap: 2px; flex-shrink: 0;
+    }
+    .p-chip {
+      width: 22px; height: 22px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700; color: #fff;
+      border: 1.5px solid rgba(0,0,0,0.3);
+      flex-shrink: 0;
+    }
+    .p-chip.is-me { border-color: #fff; }
+
+    /* Submarine row */
+    .sub-station {
+      display: flex; align-items: center; gap: var(--sp-sm);
+      padding: 10px var(--sp-base);
+      background: rgba(0,0,0,0.5);
+      border-bottom: 2px solid rgba(255,255,255,0.15);
+      position: sticky; top: 0; z-index: 5;
+    }
+    .sub-station-icon { font-size: 28px; }
+    .sub-station-label { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.7); flex: 1; }
+    .sub-station-players { display: flex; gap: 3px; flex-wrap: wrap; }
+
+    /* Footer */
+    .g-footer {
+      flex-shrink: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--hairline);
+      padding: var(--sp-sm) var(--sp-base) calc(env(safe-area-inset-bottom,0px) + var(--sp-sm));
+    }
+    .held-row {
+      display: flex; align-items: center; gap: var(--sp-sm); margin-bottom: var(--sp-sm);
+      font-size: 13px; color: var(--body-text);
+    }
+    .held-chips { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; }
+    .held-chip {
+      padding: 3px 8px; border-radius: var(--r-full); font-size: 11px; font-weight: 600;
+    }
+    .held-chip.l1 { background: rgba(34,197,94,0.2); color: #4ade80; }
+    .held-chip.l2 { background: rgba(234,179,8,0.2); color: #fbbf24; }
+    .held-chip.l3 { background: rgba(249,115,22,0.2); color: #fb923c; }
+    .held-chip.l4 { background: rgba(239,68,68,0.2); color: #f87171; }
+    .action-row {
+      display: flex; gap: var(--sp-sm);
+    }
+    .abtn {
+      flex: 1; min-height: 48px; border-radius: var(--r-sm);
+      border: none; font-family: var(--font); font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: opacity .15s;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .abtn:active { opacity: .75; }
+    .abtn.primary { background: var(--rausch); color: #fff; }
+    .abtn.secondary { background: var(--surface-raised); color: var(--ink); border: 1px solid var(--border); }
+    .abtn.green { background: #16a34a; color: #fff; }
+    .abtn.amber { background: #d97706; color: #fff; }
+    .abtn:disabled { opacity: .35; cursor: not-allowed; }
+    .other-turn-msg {
+      text-align: center; font-size: 14px; color: var(--muted); padding: 10px 0;
+      min-height: 48px; display: flex; align-items: center; justify-content: center;
+    }
+    .dice-result {
+      font-size: 13px; color: var(--body-text); text-align: center; margin-bottom: 4px;
+    }
+
+    /* Round end / Game end */
+    .overlay-screen {
+      position: fixed; inset: 0; background: var(--canvas); z-index: 100;
+      overflow-y: auto; padding: calc(env(safe-area-inset-top,0px) + var(--sp-base))
+        var(--sp-base) calc(env(safe-area-inset-bottom,0px) + var(--sp-xxl));
+    }
+    .overlay-inner {
+      max-width: 430px; margin: 0 auto;
+      display: flex; flex-direction: column; gap: var(--sp-md);
+    }
+    .ov-title { font-size: 22px; font-weight: 700; color: var(--ink); text-align: center; }
+    .ov-sub { font-size: 13px; color: var(--muted); text-align: center; }
+    .result-card {
+      background: var(--surface-card); border: 1px solid var(--hairline);
+      border-radius: var(--r-md); padding: var(--sp-base);
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .result-card.returned { border-color: var(--ok); background: rgba(34,197,94,.04); }
+    .result-card.lost { opacity: .65; }
+    .rc-header { display: flex; align-items: center; gap: var(--sp-sm); }
+    .rc-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .rc-name { font-size: 15px; font-weight: 600; color: var(--ink); flex: 1; }
+    .rc-status { font-size: 12px; }
+    .rc-status.ok { color: var(--ok); }
+    .rc-status.ng { color: var(--ng); }
+    .rc-scores { display: flex; gap: var(--sp-md); font-size: 13px; color: var(--body-text); }
+    .rc-scores strong { color: var(--ink); }
+    .podium { display: flex; flex-direction: column; gap: var(--sp-sm); }
+    .pdi { background: var(--surface-card); border: 1px solid var(--hairline);
+           border-radius: var(--r-md); padding: var(--sp-base);
+           display: flex; align-items: center; gap: var(--sp-md); }
+    .pdi.rank1 { border-color: #f59e0b; background: rgba(245,158,11,.06); }
+    .pd-rank { font-size: 24px; flex-shrink: 0; }
+    .pd-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+    .pd-info { flex: 1; }
+    .pd-name { font-size: 15px; font-weight: 600; color: var(--ink); }
+    .pd-score { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .btn-row { display: flex; gap: var(--sp-sm); margin-top: var(--sp-sm); }
+    .gbtn { flex: 1; padding: 10px; min-height: 44px; border: 1px solid var(--border);
+            background: var(--surface-card); color: var(--ink); font-family: var(--font);
+            font-size: 14px; border-radius: var(--r-sm); cursor: pointer; text-decoration: none;
+            display: flex; align-items: center; justify-content: center; }
+    .gbtn.primary { border-color: var(--rausch); color: var(--rausch); }
+    .gbtn.primary:hover { background: var(--rausch-dim); }
+
+    /* Toast */
+    .toast { position: fixed; bottom: max(24px, env(safe-area-inset-bottom,24px));
+             left: 50%; transform: translateX(-50%); background: var(--surface-raised);
+             color: var(--ink); border: 1px solid var(--border); padding: 9px 18px;
+             border-radius: var(--r-md); font-size: 13px; z-index: 2000;
+             opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap;
+             max-width: 90vw; overflow: hidden; text-overflow: ellipsis; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<!-- ══ LOBBY ══ -->
+<div id="lobbyScreen" class="page">
+  <a class="back-link" href="../../index.html">‹ ロビーに戻る</a>
+  <h1 class="page-title">サルベージ</h1>
+  <p class="page-sub">SALVAGE — 深海チキンレースすごろく</p>
+
+  <div class="lcard">
+    <h2>あなたの名前</h2>
+    <input class="inp" id="nameInp" type="text" maxlength="8"
+      placeholder="ニックネーム（最大8文字）" autocomplete="nickname">
+  </div>
+
+  <div class="lcard">
+    <h2>部屋を作る</h2>
+    <div class="code-disp" id="createCode"></div>
+    <button class="copy-btn" id="copyBtn" onclick="copyCode()">コードをコピー</button>
+    <div class="plist" id="waitList"></div>
+    <p class="wh" id="waitHint">参加者を待っています<span class="dots"></span></p>
+    <button class="btn-primary" id="startBtn" style="width:100%;margin-top:var(--sp-base)" disabled onclick="hostStart()">
+      ゲーム開始（2人以上）
+    </button>
+  </div>
+
+  <div class="or-div">または</div>
+
+  <div class="lcard">
+    <h2>部屋に参加する</h2>
+    <input class="inp code-inp" id="codeInp" type="text" maxlength="4"
+      placeholder="4桁のコードを入力"
+      autocorrect="off" autocomplete="off" autocapitalize="characters" spellcheck="false"
+      oninput="this.value=this.value.toUpperCase()">
+    <p class="err" id="joinErr"></p>
+    <button class="btn-primary" style="width:100%" onclick="joinRoom()">参加する</button>
+  </div>
+</div>
+
+<!-- ══ WAIT (guest) ══ -->
+<div id="waitScreen" class="page hidden">
+  <a class="back-link" href="../../index.html">‹ ロビーに戻る</a>
+  <div class="lcard">
+    <h2>参加済み — ホストの開始を待っています</h2>
+    <div class="plist" id="waitList2"></div>
+    <p class="wh">ホストがゲームを開始するのを待っています<span class="dots"></span></p>
+  </div>
+</div>
+
+<!-- ══ GAME ══ -->
+<div id="gameScreen" class="hidden">
+  <!-- Header -->
+  <div class="g-header">
+    <div class="g-header-top">
+      <span class="g-round-info" id="hRound">ラウンド 1 / 3</span>
+      <span class="g-turn-info" id="hTurnInfo">読み込み中...</span>
+    </div>
+    <div class="air-wrap">
+      <span class="air-icon">🫧</span>
+      <span class="air-num" id="airNum">25</span>
+      <div class="air-bar-bg">
+        <div class="air-bar-fill" id="airBar" style="width:100%;background:#22c55e"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Course -->
+  <div class="g-course-wrap" id="courseWrap">
+    <div class="course-inner" id="courseInner"></div>
+  </div>
+
+  <!-- Footer -->
+  <div class="g-footer">
+    <div class="held-row">
+      <span>持ち物:</span>
+      <div class="held-chips" id="heldChips"></div>
+      <span id="heldCount" style="font-size:12px;color:var(--muted)"></span>
+    </div>
+    <div class="dice-result" id="diceResult"></div>
+    <div class="action-row" id="actionRow"></div>
+  </div>
+</div>
+
+<!-- ══ ROUND END ══ -->
+<div id="roundEndScreen" class="overlay-screen hidden">
+  <div class="overlay-inner">
+    <a class="back-link" href="../../index.html">‹ ロビーに戻る</a>
+    <div class="ov-title" id="reTitle">ラウンド終了</div>
+    <div class="ov-sub" id="reSub"></div>
+    <div id="reCards"></div>
+    <button class="btn-primary" id="nextRoundBtn" style="width:100%;margin-top:var(--sp-sm)" onclick="nextRound()">
+      次のラウンドへ
+    </button>
+  </div>
+</div>
+
+<!-- ══ GAME END ══ -->
+<div id="gameEndScreen" class="overlay-screen hidden">
+  <div class="overlay-inner">
+    <a class="back-link" href="../../index.html">‹ ロビーに戻る</a>
+    <div class="ov-title">ゲーム終了！</div>
+    <div class="ov-sub">3ラウンド合計スコア</div>
+    <div class="podium" id="podium"></div>
+    <div class="btn-row">
+      <button class="gbtn primary" onclick="requestRematch()">もう一度</button>
+      <a class="gbtn" href="../../index.html">ロビーへ</a>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Firebase ─────────────────────────────────────────────
+const FB = {
+  apiKey: "AIzaSyAkR_J-GvubFY3EzrQMQpaB6oVTOShv0sg",
+  authDomain: "friend-games-c2938.firebaseapp.com",
+  databaseURL: "https://friend-games-c2938-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "friend-games-c2938",
+  storageBucket: "friend-games-c2938.firebasestorage.app",
+  messagingSenderId: "854826226374",
+  appId: "1:854826226374:web:631b0d2c4fc9bbab1b7dc7",
+};
+firebase.initializeApp(FB);
+const db = firebase.database();
+
+// ── Constants ────────────────────────────────────────────
+const P_COLORS = ['#ff385c','#2563eb','#16a34a','#d97706','#7c3aed','#ec4899'];
+const MAX_AIR = 25;
+
+// ── State ────────────────────────────────────────────────
+let myIdx = 0, isHost = true, localPhase = 'lobby';
+let roomCode, roomRef, myCreateCode;
+let currentData = null;
+const processed = new Set();
+
+// ── Helpers ──────────────────────────────────────────────
+function rndCode() {
+  const ch = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = '';
+  for (let i = 0; i < 4; i++) s += ch[Math.floor(Math.random() * ch.length)];
+  return s;
+}
+function shuffle(a) {
+  const r = [...a];
+  for (let i = r.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [r[i], r[j]] = [r[j], r[i]];
+  }
+  return r;
+}
+function getName() {
+  return (document.getElementById('nameInp').value || '').trim() || `プレイヤー${myIdx + 1}`;
+}
+function showToast(msg, dur = 2200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+function hideAll() {
+  ['lobbyScreen','waitScreen','gameScreen','roundEndScreen','gameEndScreen'].forEach(id => {
+    document.getElementById(id).classList.add('hidden');
+  });
+}
+
+// ── Course generation ─────────────────────────────────────
+function generateCourse() {
+  const course = [];
+  for (let level = 1; level <= 4; level++) {
+    const base = (level - 1) * 4;
+    const tiles = [];
+    for (let i = 0; i < 8; i++) {
+      tiles.push({
+        type: 'treasure',
+        level,
+        score: base + Math.floor(Math.random() * 4),
+        bundleCount: 1,
+      });
+    }
+    // shuffle within level
+    const shuffled = shuffle(tiles);
+    course.push(...shuffled);
+  }
+  return course; // indices 0-31 (depth 1-32)
+}
+
+// ── Move calculation ──────────────────────────────────────
+function calcMove(fromPos, steps, dir, courseLen, players) {
+  const occupied = new Set(
+    Object.values(players).map(p => p.pos).filter(p => p !== fromPos)
+  );
+  let pos = fromPos;
+  let counted = 0;
+  while (counted < steps) {
+    const next = dir === 'fwd' ? pos + 1 : pos - 1;
+    if (dir === 'bck' && next <= 0) { pos = 0; break; }
+    if (dir === 'fwd' && next > courseLen) break;
+    pos = next;
+    if (!occupied.has(next)) counted++;
+  }
+  return pos;
+}
+
+// ── Lobby init ────────────────────────────────────────────
+(function initLobby() {
+  myCreateCode = rndCode();
+  myIdx   = 0;
+  isHost  = true;
+  roomCode = myCreateCode;
+  roomRef  = db.ref(`salvage/${roomCode}`);
+
+  document.getElementById('createCode').textContent = roomCode;
+  roomRef.child('players/0').set({ name: '—', color: P_COLORS[0], pos: 0, dir: 'fwd',
+    firstDone: false, returned: false, held: [], totalScore: 0 });
+  roomRef.onDisconnect().remove();
+
+  roomRef.child('players').on('value', snap => {
+    if (localPhase !== 'lobby') return;
+    const ps = snap.val() || {};
+    renderWaitList(ps, 'waitList');
+    document.getElementById('startBtn').disabled = Object.keys(ps).length < 2;
+  });
+  roomRef.child('phase').on('value', snap => {
+    if (snap.val() === 'playing' && localPhase === 'lobby') {
+      localPhase = 'playing';
+      startGameListeners();
+    }
+  });
+})();
+
+function renderWaitList(players, elId) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = Object.entries(players)
+    .sort((a, b) => +a[0] - +b[0])
+    .map(([i, p]) =>
+      `<div class="prow">
+        <div class="prow-dot" style="background:${P_COLORS[+i] || '#888'}"></div>
+        <span class="pname">${p.name || `プレイヤー${+i+1}`}${+i === myIdx ? ' （あなた）' : ''}</span>
+        ${+i === 0 ? '<span class="phst">ホスト</span>' : ''}
+      </div>`
+    ).join('');
+}
+
+function copyCode() {
+  navigator.clipboard.writeText(myCreateCode).catch(() => {});
+  const btn = document.getElementById('copyBtn');
+  btn.textContent = 'コピーしました！';
+  btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = 'コードをコピー'; btn.classList.remove('copied'); }, 2000);
+}
+
+// ── Join room ─────────────────────────────────────────────
+async function joinRoom() {
+  const code  = document.getElementById('codeInp').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const errEl = document.getElementById('joinErr');
+  const btn   = document.querySelector('#lobbyScreen .lcard:last-child .btn-primary');
+  errEl.textContent = '';
+  if (code.length !== 4) { errEl.textContent = '4桁のコードを入力してください'; return; }
+  if (code === myCreateCode) { errEl.textContent = '自分のコードには参加できません'; return; }
+
+  btn.disabled = true; btn.textContent = '接続中…';
+  try {
+    const snap = await db.ref(`salvage/${code}`).once('value');
+    const data = snap.val();
+    if (!data || !data.players) {
+      errEl.textContent = '部屋が見つかりません'; btn.disabled = false; btn.textContent = '参加する'; return;
+    }
+    if (data.phase && data.phase !== 'lobby') {
+      errEl.textContent = 'ゲームはすでに開始しています'; btn.disabled = false; btn.textContent = '参加する'; return;
+    }
+    const cnt = Object.keys(data.players).length;
+    if (cnt >= 6) { errEl.textContent = '満員です（最大6人）'; btn.disabled = false; btn.textContent = '参加する'; return; }
+
+    const newIdx = cnt;
+    const name = getName();
+    await db.ref(`salvage/${code}/players/${newIdx}`).set({
+      name, color: P_COLORS[newIdx] || P_COLORS[0],
+      pos: 0, dir: 'fwd', firstDone: false, returned: false, held: [], totalScore: 0
+    });
+
+    roomRef.child('players').off();
+    roomRef.child('phase').off();
+    db.ref(`salvage/${myCreateCode}`).remove();
+
+    myIdx    = newIdx;
+    isHost   = false;
+    roomCode = code;
+    roomRef  = db.ref(`salvage/${code}`);
+    roomRef.child(`players/${myIdx}`).onDisconnect().remove();
+
+    localPhase = 'waiting';
+    document.getElementById('lobbyScreen').classList.add('hidden');
+    document.getElementById('waitScreen').classList.remove('hidden');
+
+    roomRef.on('value', snap => {
+      const d = snap.val();
+      if (!d) return;
+      currentData = d;
+      if (localPhase === 'waiting') {
+        renderWaitList(d.players || {}, 'waitList2');
+        if (!d.phase || d.phase === 'lobby') return;
+        localPhase = d.phase;
+        document.getElementById('waitScreen').classList.add('hidden');
+      }
+      handleData(d);
+    });
+  } catch (e) {
+    console.error(e);
+    errEl.textContent = 'エラー: ' + (e.message || String(e));
+    btn.disabled = false; btn.textContent = '参加する';
+  }
+}
+
+// ── Host: start ───────────────────────────────────────────
+async function hostStart() {
+  if (!isHost) return;
+  const btn = document.getElementById('startBtn');
+  btn.disabled = true; btn.textContent = '開始中…';
+  try {
+    const name = getName();
+    await roomRef.child('players/0/name').set(name);
+
+    const snap = await roomRef.child('players').once('value');
+    const playerCount = Object.keys(snap.val() || {}).length;
+
+    const course = generateCourse();
+
+    await roomRef.update({
+      phase: 'playing',
+      round: 1,
+      air: MAX_AIR,
+      roundEnding: false,
+      turn: 0,
+      step: 'reduce',
+      diceRoll: null,
+      course,
+    });
+  } catch (e) {
+    showToast('開始に失敗: ' + (e.message || e));
+    btn.disabled = false; btn.textContent = 'ゲーム開始（2人以上）';
+  }
+}
+
+// ── Game listeners (host path) ────────────────────────────
+function startGameListeners() {
+  if (isHost) roomRef.child('players/0/name').set(getName());
+  document.getElementById('lobbyScreen').classList.add('hidden');
+  document.getElementById('waitScreen').classList.add('hidden');
+
+  roomRef.on('value', snap => {
+    const d = snap.val();
+    if (!d) return;
+    currentData = d;
+    handleData(d);
+  });
+}
+
+// ── Main data handler ─────────────────────────────────────
+function handleData(d) {
+  if (!d || !d.phase) return;
+  if (d.phase === 'playing') {
+    renderGame(d);
+    // Auto-step for current player
+    if (d.turn === myIdx && (d.step === 'reduce' || d.step === 'done')) {
+      const stepId = `${d.round}-${d.turn}-${d.step}-${JSON.stringify(d.diceRoll)}`;
+      if (!processed.has(stepId)) {
+        processed.add(stepId);
+        if (d.step === 'reduce') autoReduce(d);
+        else if (d.step === 'done') autoDone(d);
+      }
+    }
+  } else if (d.phase === 'roundEnd') {
+    renderRoundEnd(d);
+  } else if (d.phase === 'gameEnd') {
+    renderGameEnd(d);
+  }
+}
+
+// ── Auto: reduce ──────────────────────────────────────────
+async function autoReduce(d) {
+  const p = getPlayer(d, d.turn);
+  if (!p) return;
+
+  const updates = {};
+
+  if (!p.firstDone) {
+    // First move of the game for this player
+    updates[`players/${d.turn}/firstDone`] = true;
+    updates['step'] = 'roll';
+  } else {
+    const heldLen = getHeld(p).length;
+    const newAir = (d.air || 0) - heldLen;
+    updates['air'] = newAir;
+    if (newAir <= 0) updates['roundEnding'] = true;
+
+    if (p.dir === 'bck') {
+      updates['step'] = 'roll';
+    } else {
+      updates['step'] = 'dir';
+    }
+  }
+
+  try {
+    await roomRef.update(updates);
+  } catch (e) { console.error('autoReduce', e); }
+}
+
+// ── Auto: done ────────────────────────────────────────────
+async function autoDone(d) {
+  const p = getPlayer(d, d.turn);
+  if (!p) return;
+
+  const players = d.players || {};
+  const nonReturned = Object.entries(players).filter(([, pl]) => !pl.returned);
+
+  // Check if current player just returned
+  if (p.returned) {
+    // Check all returned
+    const allReturned = Object.values(players).every(pl => pl.returned);
+    if (allReturned || d.roundEnding) {
+      await endRound(d);
+      return;
+    }
+  } else if (d.roundEnding) {
+    await endRound(d);
+    return;
+  }
+
+  // Check all returned
+  const allReturned = Object.values(players).every(pl => pl.returned);
+  if (allReturned) {
+    await endRound(d);
+    return;
+  }
+
+  // Advance to next non-returned player
+  const pKeys = Object.keys(players).map(Number).sort((a, b) => a - b);
+  let next = d.turn;
+  for (let i = 1; i <= pKeys.length; i++) {
+    const candidate = (d.turn + i) % pKeys.length;
+    if (!players[candidate] || players[candidate].returned) continue;
+    next = candidate;
+    break;
+  }
+
+  await roomRef.update({
+    turn: next,
+    step: 'reduce',
+    diceRoll: null,
+  });
+}
+
+// ── Round end processing ──────────────────────────────────
+async function endRound(d) {
+  const players = { ...(d.players || {}) };
+  const course  = [...(d.course || [])];
+  const round   = d.round || 1;
+
+  const roundData = {};
+  const lostChipsPerPlayer = []; // { playerIdx, pos, chips }
+
+  // Sort by pos descending (farthest first = loses chips first)
+  const sortedByPos = Object.entries(players)
+    .map(([idx, pl]) => ({ idx: +idx, pl }))
+    .sort((a, b) => b.pl.pos - a.pl.pos);
+
+  const updates = {};
+  for (const { idx, pl } of sortedByPos) {
+    const held = getHeld(pl);
+    if (pl.returned) {
+      const earned = held.reduce((s, c) => s + (c.score || 0), 0);
+      updates[`players/${idx}/totalScore`] = (pl.totalScore || 0) + earned;
+      updates[`players/${idx}/held`] = [];
+      roundData[idx] = { returned: true, earned, totalScore: (pl.totalScore || 0) + earned, name: pl.name };
+    } else {
+      // Lost chips — collect in order (farthest first for stacking)
+      if (held.length > 0) {
+        lostChipsPerPlayer.push({ idx, pos: pl.pos, chips: held });
+      }
+      updates[`players/${idx}/held`] = [];
+      updates[`players/${idx}/pos`] = 0;
+      updates[`players/${idx}/returned`] = false;
+      updates[`players/${idx}/dir`] = 'fwd';
+      updates[`players/${idx}/firstDone`] = false;
+      roundData[idx] = { returned: false, earned: 0, totalScore: pl.totalScore || 0, name: pl.name };
+    }
+    // Reset for next round
+    updates[`players/${idx}/returned`] = !!pl.returned && round < 3 ? false : (pl.returned);
+    if (round < 3) {
+      updates[`players/${idx}/pos`] = 0;
+      updates[`players/${idx}/dir`] = 'fwd';
+      updates[`players/${idx}/firstDone`] = false;
+    }
+  }
+
+  // Build lost chips bundles (farthest player first)
+  // Sort lostChipsPerPlayer by pos descending
+  lostChipsPerPlayer.sort((a, b) => b.pos - a.pos);
+  const allLostFlat = lostChipsPerPlayer.flatMap(p => p.chips);
+
+  // Bundle every 3
+  const newTiles = [];
+  for (let i = 0; i < allLostFlat.length; i += 3) {
+    const group = allLostFlat.slice(i, i + 3);
+    if (group.length === 3) {
+      newTiles.push({
+        type: 'bundle',
+        level: Math.max(...group.map(c => c.level || 1)),
+        score: group.reduce((s, c) => s + (c.score || 0), 0),
+        bundleCount: 3,
+      });
+    } else {
+      // Individual chips
+      for (const chip of group) {
+        newTiles.push({ ...chip, type: 'treasure', bundleCount: 1 });
+      }
+    }
+  }
+
+  // Remove blanks from course and add new tiles at end
+  const cleanCourse = course.filter(c => c.type !== 'blank');
+  const newCourse = [...cleanCourse, ...newTiles];
+
+  if (round >= 3) {
+    // Game end
+    updates['phase'] = 'gameEnd';
+    updates['course'] = newCourse;
+    updates['roundEndData'] = roundData;
+    await roomRef.update(updates);
+  } else {
+    // Next round
+    // First player: farthest non-returned (or 0)
+    const nextFirst = lostChipsPerPlayer.length > 0 ? lostChipsPerPlayer[0].idx : 0;
+    updates['phase'] = 'roundEnd';
+    updates['round'] = round;
+    updates['course'] = newCourse;
+    updates['roundEndData'] = roundData;
+    updates['nextFirst'] = nextFirst;
+    await roomRef.update(updates);
+  }
+}
+
+// ── Next round (host) ─────────────────────────────────────
+async function nextRound() {
+  if (!isHost) return;
+  const d = currentData;
+  if (!d) return;
+  const nextFirst = d.nextFirst || 0;
+  const round = (d.round || 1) + 1;
+
+  // Reset player states
+  const updates = {
+    phase: 'playing',
+    round,
+    air: MAX_AIR,
+    roundEnding: false,
+    turn: nextFirst,
+    step: 'reduce',
+    diceRoll: null,
+    roundEndData: null,
+    nextFirst: null,
+  };
+  const players = d.players || {};
+  for (const idx of Object.keys(players)) {
+    updates[`players/${idx}/pos`] = 0;
+    updates[`players/${idx}/dir`] = 'fwd';
+    updates[`players/${idx}/firstDone`] = false;
+    updates[`players/${idx}/returned`] = false;
+    updates[`players/${idx}/held`] = [];
+  }
+
+  await roomRef.update(updates);
+}
+
+// ── Player actions ────────────────────────────────────────
+async function declareDir(dir) {
+  const d = currentData;
+  if (!d || d.turn !== myIdx || d.step !== 'dir') return;
+  const updates = { step: 'roll' };
+  if (dir === 'bck') updates[`players/${myIdx}/dir`] = 'bck';
+  await roomRef.update(updates);
+}
+
+async function rollDice() {
+  const d = currentData;
+  if (!d || d.turn !== myIdx || d.step !== 'roll') return;
+  const btn = document.querySelector('#actionRow .abtn.primary');
+  if (btn) { btn.disabled = true; }
+
+  const d1 = Math.floor(Math.random() * 3) + 1;
+  const d2 = Math.floor(Math.random() * 3) + 1;
+  const p = getPlayer(d, myIdx);
+  const heldLen = getHeld(p).length;
+  const rawSteps = d1 + d2;
+  const steps = Math.max(0, rawSteps - heldLen);
+
+  const course = d.course || [];
+  const newPos = calcMove(p.pos, steps, p.dir, course.length, d.players || {});
+
+  const updates = {
+    diceRoll: [d1, d2],
+    [`players/${myIdx}/pos`]: newPos,
+  };
+
+  // Check returned
+  let returned = p.returned || false;
+  if (p.dir === 'bck' && newPos === 0) {
+    returned = true;
+    updates[`players/${myIdx}/returned`] = true;
+  }
+
+  // Determine next step
+  if (returned) {
+    updates['step'] = 'done';
+  } else {
+    const tile = course[newPos - 1]; // pos is 1-based index into course
+    if (tile && tile.type === 'treasure') {
+      updates['step'] = 'pickup';
+    } else if (tile && tile.type === 'bundle') {
+      updates['step'] = 'pickup';
+    } else if ((!tile || tile.type === 'blank') && getHeld(p).length > 0) {
+      updates['step'] = 'drop';
+    } else {
+      updates['step'] = 'done';
+    }
+  }
+
+  await roomRef.update(updates);
+}
+
+async function doPickup(pickup) {
+  const d = currentData;
+  if (!d || d.turn !== myIdx || d.step !== 'pickup') return;
+  const p = getPlayer(d, myIdx);
+  const pos = p.pos;
+
+  if (pickup && pos >= 1) {
+    const course = [...(d.course || [])];
+    const tile = course[pos - 1];
+    if (tile && tile.type !== 'blank') {
+      const held = [...getHeld(p), { ...tile }];
+      course[pos - 1] = { type: 'blank', level: tile.level, score: 0, bundleCount: 1 };
+      await roomRef.update({
+        [`players/${myIdx}/held`]: held,
+        course,
+        step: 'done',
+      });
+      return;
+    }
+  }
+  await roomRef.update({ step: 'done' });
+}
+
+async function doDrop(drop) {
+  const d = currentData;
+  if (!d || d.turn !== myIdx || d.step !== 'drop') return;
+  const p = getPlayer(d, myIdx);
+
+  if (drop && getHeld(p).length > 0) {
+    const held = [...getHeld(p)];
+    const dropped = held.pop();
+    const pos = p.pos;
+    if (pos >= 1) {
+      const course = [...(d.course || [])];
+      // Place at current pos (only if blank)
+      if (course[pos - 1] && course[pos - 1].type === 'blank') {
+        course[pos - 1] = { ...dropped, type: dropped.bundleCount > 1 ? 'bundle' : 'treasure' };
+      } else {
+        // Append to end of course
+        course.push({ ...dropped, type: dropped.bundleCount > 1 ? 'bundle' : 'treasure' });
+      }
+      await roomRef.update({
+        [`players/${myIdx}/held`]: held,
+        course,
+        step: 'done',
+      });
+      return;
+    }
+  }
+  await roomRef.update({ step: 'done' });
+}
+
+async function requestRematch() {
+  if (!isHost) { showToast('ホストの操作を待っています'); return; }
+  const d = currentData;
+  if (!d) return;
+  const players = d.players || {};
+  const updates = {
+    phase: 'playing',
+    round: 1,
+    air: MAX_AIR,
+    roundEnding: false,
+    turn: 0,
+    step: 'reduce',
+    diceRoll: null,
+    roundEndData: null,
+    nextFirst: null,
+    course: generateCourse(),
+  };
+  for (const idx of Object.keys(players)) {
+    updates[`players/${idx}/pos`] = 0;
+    updates[`players/${idx}/dir`] = 'fwd';
+    updates[`players/${idx}/firstDone`] = false;
+    updates[`players/${idx}/returned`] = false;
+    updates[`players/${idx}/held`] = [];
+    updates[`players/${idx}/totalScore`] = 0;
+  }
+  await roomRef.update(updates);
+}
+
+// ── Render: game ──────────────────────────────────────────
+function renderGame(d) {
+  hideAll();
+  document.getElementById('gameScreen').classList.remove('hidden');
+
+  const players = d.players || {};
+  const course  = d.course || [];
+  const air     = d.air != null ? d.air : MAX_AIR;
+  const pct     = Math.max(0, Math.min(100, (air / MAX_AIR) * 100));
+  const airColor = pct > 50 ? '#22c55e' : pct > 25 ? '#f59e0b' : '#ef4444';
+
+  document.getElementById('airNum').textContent = Math.max(0, air);
+  document.getElementById('hRound').textContent = `ラウンド ${d.round || 1} / 3`;
+  const airBar = document.getElementById('airBar');
+  airBar.style.width = pct + '%';
+  airBar.style.background = airColor;
+
+  const turnPlayer = players[d.turn];
+  const turnName = turnPlayer ? (turnPlayer.name || `P${d.turn+1}`) : '?';
+  const hTurn = document.getElementById('hTurnInfo');
+  if (d.turn === myIdx) {
+    hTurn.textContent = 'あなたのターン';
+    hTurn.className = 'g-turn-info myturn';
+  } else {
+    hTurn.textContent = `${turnName} のターン`;
+    hTurn.className = 'g-turn-info';
+  }
+
+  // Build position map
+  const posMap = {}; // pos -> [playerIdx...]
+  for (const [idx, p] of Object.entries(players)) {
+    const pos = p.pos || 0;
+    if (!posMap[pos]) posMap[pos] = [];
+    posMap[pos].push(+idx);
+  }
+
+  // Render course
+  const inner = document.getElementById('courseInner');
+  let html = '';
+
+  // Submarine (pos=0)
+  const subPlayers = (posMap[0] || []).map(i =>
+    `<div class="p-chip${i === myIdx ? ' is-me' : ''}" style="background:${P_COLORS[i] || '#888'}" title="${players[i]?.name || ''}">${(players[i]?.name || '?')[0]}</div>`
+  ).join('');
+  html += `<div class="sub-station">
+    <span class="sub-station-icon">🚤</span>
+    <span class="sub-station-label">潜水艦</span>
+    <div class="sub-station-players">${subPlayers}</div>
+  </div>`;
+
+  // Course tiles (1-based depth)
+  for (let i = 0; i < course.length; i++) {
+    const tile = course[i];
+    const depth = i + 1;
+    const tilePos = depth; // pos 1 = depth 1
+    const herePlayers = (posMap[tilePos] || []);
+    const isCurrentTurn = herePlayers.includes(d.turn);
+    const isMe = herePlayers.includes(myIdx);
+
+    let rowClass = 'sub-row';
+    if (isMe && d.turn === myIdx) rowClass += ' current-me';
+    else if (isCurrentTurn) rowClass += ' current-turn';
+
+    let chipClass = 'chip-icon';
+    let chipText = '';
+    let labelText = '';
+    let scoreText = '';
+    let bundleBadge = '';
+
+    if (tile.type === 'blank') {
+      chipClass += ' blank';
+      chipText = '—';
+      labelText = `<span class="chip-label blank-lbl">（空き）</span>`;
+      scoreText = '';
+    } else {
+      const lv = tile.level || 1;
+      chipClass += ` l${lv}`;
+      const lvLabel = ['','L1','L2','L3','L4'][lv] || '';
+      chipText = lvLabel;
+      if (tile.type === 'bundle') {
+        bundleBadge = `<span class="bundle-badge">×${tile.bundleCount || 3}</span>`;
+        labelText = `<span class="chip-label">束（${tile.bundleCount || 3}個）</span>`;
+        scoreText = `<span class="chip-score">?pt</span>`;
+      } else {
+        labelText = `<span class="chip-label">宝物 ${lvLabel}</span>`;
+        scoreText = '';
+      }
+    }
+
+    const playerIcons = herePlayers.map(i =>
+      `<div class="p-chip${i === myIdx ? ' is-me' : ''}" style="background:${P_COLORS[i] || '#888'}" title="${players[i]?.name || ''}">${(players[i]?.name || '?')[0]}</div>`
+    ).join('');
+
+    html += `<div class="${rowClass}" data-pos="${tilePos}" id="courserow-${tilePos}">
+      <span class="sub-depth">${depth}</span>
+      <div class="${chipClass}">${chipText}${bundleBadge}</div>
+      ${labelText}
+      ${scoreText}
+      <div class="player-icons">${playerIcons}</div>
+    </div>`;
+  }
+
+  inner.innerHTML = html;
+
+  // Scroll current player into view
+  const myPos = (players[myIdx] || {}).pos || 0;
+  const targetId = myPos === 0 ? null : `courserow-${myPos}`;
+  if (targetId) {
+    setTimeout(() => {
+      const el = document.getElementById(targetId);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  }
+
+  // Render held chips
+  renderHeld(d);
+  // Render action buttons
+  renderActions(d);
+}
+
+function renderHeld(d) {
+  const p = getPlayer(d, myIdx);
+  const held = getHeld(p);
+  const chipsEl = document.getElementById('heldChips');
+  const countEl = document.getElementById('heldCount');
+
+  chipsEl.innerHTML = held.map(c => {
+    const lv = c.level || 1;
+    const label = c.type === 'bundle' ? `束×${c.bundleCount || 3}` : `L${lv}`;
+    return `<span class="held-chip l${lv}">${label}</span>`;
+  }).join('');
+  countEl.textContent = held.length > 0 ? `${held.length}個` : '';
+}
+
+function renderActions(d) {
+  const actionRow = document.getElementById('actionRow');
+  const diceResult = document.getElementById('diceResult');
+
+  if (d.diceRoll) {
+    const [d1, d2] = d.diceRoll;
+    const p = getPlayer(d, d.turn);
+    const heldLen = getHeld(p).length;
+    const raw = d1 + d2;
+    const steps = Math.max(0, raw - heldLen);
+    diceResult.textContent = `🎲 ${d1} + ${d2} = ${raw}（荷物${heldLen}個 → 移動${steps}マス）`;
+  } else {
+    diceResult.textContent = '';
+  }
+
+  if (d.turn !== myIdx) {
+    const turnPlayer = (d.players || {})[d.turn];
+    const name = turnPlayer ? (turnPlayer.name || `P${d.turn+1}`) : '?';
+    actionRow.innerHTML = `<div class="other-turn-msg">${name} のターンです<span class="dots"></span></div>`;
+    return;
+  }
+
+  const step = d.step;
+  if (step === 'dir') {
+    actionRow.innerHTML = `
+      <button class="abtn green" onclick="declareDir('fwd')">→ 進む</button>
+      <button class="abtn amber" onclick="declareDir('bck')">← 戻る</button>
+    `;
+  } else if (step === 'roll') {
+    actionRow.innerHTML = `<button class="abtn primary" onclick="rollDice()">🎲 サイコロを振る</button>`;
+  } else if (step === 'pickup') {
+    actionRow.innerHTML = `
+      <button class="abtn green" onclick="doPickup(true)">💎 拾う</button>
+      <button class="abtn secondary" onclick="doPickup(false)">→ スルー</button>
+    `;
+  } else if (step === 'drop') {
+    actionRow.innerHTML = `
+      <button class="abtn amber" onclick="doDrop(true)">↓ ここに置く</button>
+      <button class="abtn secondary" onclick="doDrop(false)">→ スルー</button>
+    `;
+  } else {
+    // reduce / done — waiting for auto
+    actionRow.innerHTML = `<div class="other-turn-msg">処理中<span class="dots"></span></div>`;
+  }
+}
+
+// ── Render: round end ──────────────────────────────────────
+function renderRoundEnd(d) {
+  hideAll();
+  document.getElementById('roundEndScreen').classList.remove('hidden');
+
+  const round = d.round || 1;
+  document.getElementById('reTitle').textContent = `ラウンド ${round} 終了`;
+  document.getElementById('reSub').textContent = '次のラウンドに向けて荷物を整理します';
+
+  const roundData = d.roundEndData || {};
+  const players   = d.players || {};
+
+  let html = '';
+  const sorted = Object.entries(roundData).sort((a, b) => +a[0] - +b[0]);
+  for (const [idx, rd] of sorted) {
+    const color = P_COLORS[+idx] || '#888';
+    const returned = rd.returned;
+    html += `<div class="result-card ${returned ? 'returned' : 'lost'}" style="margin-bottom:8px">
+      <div class="rc-header">
+        <div class="rc-dot" style="background:${color}"></div>
+        <div class="rc-name">${rd.name || `P${+idx+1}`}${+idx === myIdx ? ' （あなた）' : ''}</div>
+        <div class="rc-status ${returned ? 'ok' : 'ng'}">${returned ? '帰還' : '脱落'}</div>
+      </div>
+      <div class="rc-scores">
+        <span>このラウンド: <strong>${rd.earned || 0}pt</strong></span>
+        <span>累計: <strong>${rd.totalScore || 0}pt</strong></span>
+      </div>
+    </div>`;
+  }
+  document.getElementById('reCards').innerHTML = html;
+
+  const nextBtn = document.getElementById('nextRoundBtn');
+  if (isHost) {
+    nextBtn.classList.remove('hidden');
+    nextBtn.textContent = round < 3 ? '次のラウンドへ' : 'ゲーム終了へ';
+  } else {
+    nextBtn.classList.add('hidden');
+  }
+}
+
+// ── Render: game end ──────────────────────────────────────
+function renderGameEnd(d) {
+  hideAll();
+  document.getElementById('gameEndScreen').classList.remove('hidden');
+
+  const players = d.players || {};
+  const sorted = Object.entries(players)
+    .sort((a, b) => (b[1].totalScore || 0) - (a[1].totalScore || 0));
+
+  const medals = ['🥇', '🥈', '🥉'];
+  let html = '';
+  sorted.forEach(([idx, p], rank) => {
+    html += `<div class="pdi ${rank === 0 ? 'rank1' : ''}">
+      <span class="pd-rank">${medals[rank] || `${rank+1}位`}</span>
+      <div class="pd-dot" style="background:${P_COLORS[+idx] || '#888'}"></div>
+      <div class="pd-info">
+        <div class="pd-name">${p.name || `P${+idx+1}`}${+idx === myIdx ? ' （あなた）' : ''}</div>
+        <div class="pd-score">${p.totalScore || 0} pt</div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('podium').innerHTML = html;
+}
+
+// ── Utilities ─────────────────────────────────────────────
+function getPlayer(d, idx) {
+  return (d.players || {})[idx] || null;
+}
+function getHeld(p) {
+  if (!p || !p.held) return [];
+  if (Array.isArray(p.held)) return p.held;
+  // Firebase may return object with numeric keys
+  return Object.values(p.held);
+}
+</script>
+</body>
+</html>
