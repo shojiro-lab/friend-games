@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>あいうえバトル — Friends Games</title>
+  <link rel="manifest" href="/friend-games/manifest.json">
+  <link rel="apple-touch-icon" href="/friend-games/icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/friend-games/icons/favicon-32.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../style.css">
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <style>
+    .page {
+      width: 100%; max-width: 430px; margin: 0 auto;
+      padding: calc(env(safe-area-inset-top,0px) + var(--sp-base))
+               var(--sp-base)
+               calc(env(safe-area-inset-bottom,0px) + var(--sp-xxl));
+      display: flex; flex-direction: column; gap: var(--sp-md);
+    }
+    .page-title { font-size: 28px; font-weight: 700; color: var(--ink); text-align: center; }
+    .page-sub   { font-size: 12px; color: var(--muted); text-align: center;
+                  letter-spacing: .15em; text-transform: uppercase; margin-top: -8px; }
+
+    /* ── Lobby ── */
+    .lcard { background: var(--surface-card); border: 1px solid var(--hairline);
+             border-radius: var(--r-md); padding: var(--sp-base); }
+    .lcard h2 { font-size: 11px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+                color: var(--muted); margin-bottom: var(--sp-md); }
+    .code-disp { font-size: 2.4rem; font-weight: 700; letter-spacing: .3em; color: var(--rausch);
+                 text-align: center; padding: var(--sp-md); background: var(--rausch-dim);
+                 border: 1px solid var(--rausch); border-radius: var(--r-sm); margin: var(--sp-sm) 0; }
+    .inp { width: 100%; background: var(--surface); border: 1px solid var(--border);
+           border-radius: var(--r-sm); padding: var(--sp-sm) var(--sp-base); color: var(--ink);
+           font-family: var(--font); font-size: 17px; outline: none;
+           margin-bottom: var(--sp-sm); min-height: 44px; }
+    .inp:focus { border-color: var(--rausch); }
+    .inp.code-inp { letter-spacing: .1em; text-transform: uppercase; }
+    .inp.code-inp::placeholder { text-transform: none; letter-spacing: 0; }
+    .copy-btn { width: 100%; padding: 8px; min-height: 44px; border: 1px solid var(--rausch);
+                background: transparent; color: var(--rausch); font-family: var(--font); font-size: 13px;
+                border-radius: var(--r-sm); cursor: pointer; transition: background .2s; }
+    .copy-btn:hover { background: var(--rausch-dim); }
+    .copy-btn.copied { border-color: var(--ok); color: var(--ok); }
+    .or-div { display: flex; align-items: center; gap: var(--sp-sm); color: var(--muted); font-size: 13px; }
+    .or-div::before,.or-div::after { content: ''; flex: 1; height: 1px; background: var(--hairline); }
+    .err  { font-size: 13px; color: var(--ng); min-height: 18px; margin-top: 4px; }
+
+    /* ── Player list ── */
+    .plist { display: flex; flex-direction: column; gap: 6px; margin: var(--sp-sm) 0; }
+    .prow { display: flex; align-items: center; gap: var(--sp-sm); padding: var(--sp-xs) var(--sp-sm);
+            background: var(--surface-raised); border-radius: var(--r-sm); }
+    .pchar { width: 28px; height: 28px; border-radius: 50%; color: #fff; font-size: 14px; font-weight: 700;
+             display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .pname { font-size: 14px; font-weight: 500; color: var(--ink); flex: 1; }
+    .phst  { font-size: 11px; color: var(--rausch); font-weight: 600; }
+
+    /* ── Waiting hint ── */
+    .wh { font-size: 12px; color: var(--muted); text-align: center; margin-top: var(--sp-sm); }
+    .dots::after { content: ''; animation: dots 1.2s steps(4,end) infinite; }
+    @keyframes dots { 0%,100%{content:''} 25%{content:'.'} 50%{content:'..'} 75%{content:'...'} }
+
+    /* ── Timer ── */
+    .timer-wrap { text-align: center; }
+    .timer-num { font-size: 72px; font-weight: 700; line-height: 1; transition: color .3s; color: var(--ok); }
+    .timer-num.mid  { color: var(--ink); }
+    .timer-num.warn { color: var(--ng); }
+    .timer-lbl { font-size: 11px; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); }
+
+    /* ── Theme display ── */
+    .theme-card { background: var(--surface-card); border: 1px solid var(--hairline);
+                  border-radius: var(--r-md); padding: var(--sp-base); text-align: center; }
+    .theme-lbl  { font-size: 11px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); }
+    .theme-txt  { font-size: 30px; font-weight: 700; color: var(--ink); margin-top: 4px; }
+
+    /* ── Character prompt ── */
+    .char-wrap { text-align: center; }
+    .char-big  { font-size: 80px; font-weight: 700; color: var(--rausch); line-height: 1; }
+    .char-hint { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+    /* ── Answer area ── */
+    .ans-area { background: var(--surface-card); border: 1px solid var(--border);
+                border-radius: var(--r-md); padding: var(--sp-base); }
+    .ans-inp { width: 100%; background: var(--surface); border: 1px solid var(--border);
+               border-radius: var(--r-sm); padding: var(--sp-sm) var(--sp-base); color: var(--ink);
+               font-family: var(--font); font-size: 22px; outline: none; min-height: 52px;
+               margin-bottom: var(--sp-sm); }
+    .ans-inp:focus { border-color: var(--rausch); }
+    .ans-inp:disabled { opacity: .5; }
+    .sub-dots { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
+    .sub-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); flex-shrink:0; }
+    .sub-dot.done { background: var(--ok); }
+    .sub-lbl { font-size: 11px; color: var(--muted); }
+
+    /* ── Reveal cards ── */
+    .sec-label { font-size: 11px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+                 color: var(--muted); text-align: center; }
+    .rev-theme { font-size: 22px; font-weight: 700; color: var(--ink); text-align: center; margin-top: 4px; }
+    .acards { display: flex; flex-direction: column; gap: var(--sp-sm); }
+    .acard { background: var(--surface-card); border: 1px solid var(--hairline);
+             border-radius: var(--r-md); padding: var(--sp-base);
+             display: flex; align-items: center; gap: var(--sp-sm); }
+    .acard.me   { border-color: var(--rausch); background: rgba(255,56,92,.04); }
+    .acard.gold { border-color: #f59e0b; }
+    .ac-rank { font-size: 22px; width: 30px; text-align: center; flex-shrink: 0; }
+    .ac-char { width: 36px; height: 36px; border-radius: 50%; color: #fff; font-size: 16px; font-weight: 700;
+               display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ac-info { flex: 1; min-width: 0; }
+    .ac-name  { font-size: 12px; color: var(--muted); }
+    .ac-ans   { font-size: 18px; font-weight: 600; color: var(--ink); }
+    .ac-ans.none { color: var(--muted); font-style: italic; font-size: 14px; }
+    .ac-pts   { font-size: 18px; font-weight: 700; color: var(--ok); white-space: nowrap; }
+    .ac-pts.zero { color: var(--muted); font-size: 14px; }
+
+    /* ── Score summary ── */
+    .sbox { background: var(--surface-card); border: 1px solid var(--hairline);
+            border-radius: var(--r-md); padding: var(--sp-base); }
+    .sbox-title { font-size: 11px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+                  color: var(--muted); margin-bottom: var(--sp-sm); }
+    .srow { display: flex; align-items: center; gap: var(--sp-sm); margin-bottom: 6px; }
+    .sname { flex: 1; font-size: 14px; font-weight: 500; color: var(--ink); }
+    .sbar-wrap { width: 72px; height: 6px; background: var(--surface-raised); border-radius: 3px; overflow: hidden; }
+    .sbar { height: 100%; background: var(--rausch); border-radius: 3px; transition: width .6s ease; }
+    .sval { font-size: 14px; font-weight: 700; color: var(--ink); width: 48px; text-align: right; }
+
+    /* ── Podium ── */
+    .podium { display: flex; flex-direction: column; gap: var(--sp-sm); }
+    .pdi { background: var(--surface-card); border: 1px solid var(--hairline);
+           border-radius: var(--r-md); padding: var(--sp-base);
+           display: flex; align-items: center; gap: var(--sp-md); }
+    .pdi.rank1 { border-color: #f59e0b; background: rgba(245,158,11,.06); }
+    .pd-medal { font-size: 30px; flex-shrink: 0; }
+    .pd-name  { font-size: 16px; font-weight: 600; color: var(--ink); flex: 1; }
+    .pd-score { font-size: 18px; font-weight: 700; color: var(--ok); }
+
+    /* ── Misc ── */
+    .btn-row { display: flex; gap: var(--sp-sm); }
+    .gbtn { flex: 1; padding: 10px var(--sp-base); min-height: 44px; border: 1px solid var(--border);
+            background: var(--surface-card); color: var(--ink); font-family: var(--font); font-size: 14px;
+            border-radius: var(--r-sm); cursor: pointer; transition: background .2s, border-color .2s; }
+    .gbtn.primary { border-color: var(--rausch); color: var(--rausch); }
+    .gbtn.primary:hover { background: var(--rausch-dim); }
+    .gbtn:disabled { opacity: .4; cursor: not-allowed; }
+    .toast { position: fixed; bottom: max(24px, env(safe-area-inset-bottom,24px));
+             left: 50%; transform: translateX(-50%); background: var(--surface-raised);
+             color: var(--ink); border: 1px solid var(--border); padding: 9px 18px;
+             border-radius: var(--r-md); font-size: 13px; z-index: 2000;
+             opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap; }
+    .toast.show { opacity: 1; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <a class="back-link" href="../../index.html">‹ ロビーに戻る</a>
+  <h1 class="page-title">あいうえバトル</h1>
+  <p class="page-sub">AIUEO BATTLE — ワードゲーム</p>
+
+  <!-- ══ LOBBY ══ -->
+  <div id="lobby">
+    <div class="lcard">
+      <h2>あなたの名前</h2>
+      <input class="inp" id="nameInp" type="text" maxlength="8"
+        placeholder="ニックネーム（最大8文字）" autocomplete="nickname">
+    </div>
+
+    <div class="lcard">
+      <h2>部屋を作る</h2>
+      <div class="code-disp" id="createCode"></div>
+      <button class="copy-btn" id="copyBtn" onclick="copyCode()">コードをコピー</button>
+      <div class="plist" id="waitList"></div>
+      <p class="wh" id="waitHint">参加者を待っています<span class="dots"></span></p>
+      <button class="btn-primary" id="startBtn" style="width:100%;margin-top:var(--sp-sm)" disabled onclick="hostStart()">
+        ゲーム開始（2人以上）
+      </button>
+    </div>
+
+    <div class="or-div">または</div>
+
+    <div class="lcard">
+      <h2>部屋に参加する</h2>
+      <input class="inp code-inp" id="codeInp" type="text" maxlength="4"
+        placeholder="4桁のコードを入力"
+        autocorrect="off" autocomplete="off" autocapitalize="characters" spellcheck="false"
+        oninput="this.value=this.value.toUpperCase()">
+      <p class="err" id="joinErr"></p>
+      <button class="btn-primary" style="width:100%" onclick="joinRoom()">参加する</button>
+    </div>
+  </div>
+
+  <!-- ══ WAIT (joiner) ══ -->
+  <div id="waitScreen" class="hidden">
+    <div class="lcard">
+      <h2>参加済み — ホストの開始を待っています</h2>
+      <div class="plist" id="waitList2"></div>
+      <p class="wh">ホストがゲームを開始するのを待っています<span class="dots"></span></p>
+    </div>
+  </div>
+
+  <!-- ══ ANSWERING ══ -->
+  <div id="answerScreen" class="hidden">
+    <div class="timer-wrap">
+      <div class="timer-num ok" id="timerNum">45</div>
+      <div class="timer-lbl">秒</div>
+    </div>
+
+    <div class="theme-card">
+      <div class="theme-lbl">テーマ</div>
+      <div class="theme-txt" id="themeText">—</div>
+    </div>
+
+    <div class="char-wrap">
+      <div class="char-big" id="myChar">あ</div>
+      <div class="char-hint">「<span id="myCharSpan">あ</span>」から始まるワードを入力してください</div>
+    </div>
+
+    <div class="ans-area">
+      <input class="ans-inp" id="ansInp" type="text" maxlength="20" placeholder="ここに入力…"
+        autocorrect="off" autocomplete="off">
+      <button class="btn-primary" id="submitBtn" style="width:100%" onclick="submitAnswer()">送信</button>
+      <div class="sub-dots" id="subDots"></div>
+    </div>
+  </div>
+
+  <!-- ══ REVEAL ══ -->
+  <div id="revealScreen" class="hidden">
+    <div>
+      <div class="sec-label" id="revRoundLbl">ラウンド 1 / 5</div>
+      <div class="rev-theme" id="revTheme">テーマ</div>
+    </div>
+    <div class="acards" id="acards"></div>
+    <div class="sbox">
+      <div class="sbox-title">累計スコア</div>
+      <div id="scoreList"></div>
+    </div>
+    <button class="btn-primary hidden" id="nextBtn" style="width:100%" onclick="hostAdvance()">次のラウンドへ →</button>
+    <p class="wh hidden" id="nextHint">次のラウンドまで <span id="nextCntEl">10</span> 秒<span class="dots"></span></p>
+  </div>
+
+  <!-- ══ GAME END ══ -->
+  <div id="gameEndScreen" class="hidden">
+    <div class="theme-card">
+      <div class="theme-lbl">ゲーム終了！</div>
+      <div class="theme-txt" style="font-size:20px">お疲れ様でした</div>
+    </div>
+    <div class="podium" id="podium"></div>
+    <div class="btn-row">
+      <button class="gbtn primary" onclick="requestRematch()">もう一度</button>
+      <a class="gbtn" style="display:flex;align-items:center;justify-content:center;text-decoration:none"
+         href="../../index.html">ロビーへ</a>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Firebase ────────────────────────────────────────────────
+const FB = {
+  apiKey: "AIzaSyAkR_J-GvubFY3EzrQMQpaB6oVTOShv0sg",
+  authDomain: "friend-games-c2938.firebaseapp.com",
+  databaseURL: "https://friend-games-c2938-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "friend-games-c2938",
+  storageBucket: "friend-games-c2938.firebasestorage.app",
+  messagingSenderId: "854826226374",
+  appId: "1:854826226374:web:631b0d2c4fc9bbab1b7dc7",
+};
+firebase.initializeApp(FB);
+const db = firebase.database();
+
+// ── Constants ────────────────────────────────────────────────
+const CHARS      = ['あ', 'い', 'う', 'え', 'お'];
+const CHAR_COLORS= ['#ff385c', '#0ea5e9', '#22c55e', '#f59e0b', '#a855f7'];
+const ROUND_N    = 5;
+const ANS_SEC    = 45;
+const THEMES = [
+  '動物', '食べ物', '国の名前', '日本の都道府県', 'スポーツ',
+  '映画・ドラマ', '歌手・アーティスト', '色の名前', '乗り物', '職業',
+  '楽器', '花・植物', '魚・海の生き物', '野菜', '果物',
+  '飲み物', '有名人', '料理の名前', '体の部位', 'ゲームのタイトル',
+  'キャラクターの名前', '場所・建物', 'ファッション・服', '学校の科目', '家具・家電',
+];
+
+// ── State ────────────────────────────────────────────────────
+let myIdx = 0, isHost = true, phase = 'lobby';
+let roomCode, roomRef, myCreateCode;
+let timerIv = null, nextIv = null;
+let currentData = null, lastSavedRound = -1;
+
+// ── Helpers ──────────────────────────────────────────────────
+function rndCode() {
+  const ch = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = '';
+  for (let i = 0; i < 4; i++) s += ch[Math.floor(Math.random() * ch.length)];
+  return s;
+}
+function shuffle(a) {
+  const r = [...a];
+  for (let i = r.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [r[i],r[j]] = [r[j],r[i]];
+  }
+  return r;
+}
+function getName() {
+  const v = (document.getElementById('nameInp').value || '').trim();
+  return v || `プレイヤー${myIdx + 1}`;
+}
+function charColor(idx) { return CHAR_COLORS[idx % CHAR_COLORS.length]; }
+
+// ── Lobby init ───────────────────────────────────────────────
+(function initLobby() {
+  myCreateCode = rndCode();
+  myIdx   = 0;
+  isHost  = true;
+  roomCode = myCreateCode;
+  roomRef  = db.ref(`aiu-battle/${roomCode}`);
+
+  document.getElementById('createCode').textContent = roomCode;
+
+  // Create room stub so joiners can find it
+  roomRef.child('players/0').set({ name: '—', score: 0 });
+  roomRef.onDisconnect().remove();
+
+  roomRef.child('players').on('value', snap => {
+    if (phase !== 'lobby') return;
+    const ps = snap.val() || {};
+    renderWaitList(ps, 'waitList');
+    document.getElementById('startBtn').disabled = Object.keys(ps).length < 2;
+  });
+
+  roomRef.child('phase').on('value', snap => {
+    if (snap.val() === 'answering' && phase === 'lobby') {
+      phase = 'answering';
+      startGameListeners();
+    }
+  });
+})();
+
+function renderWaitList(players, elId) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const entries = Object.entries(players).sort((a,b) => +a[0] - +b[0]);
+  el.innerHTML = entries.map(([idx, p]) => {
+    const i = +idx;
+    const bg = charColor(i);
+    return `<div class="prow">
+      <div class="pchar" style="background:${bg}">${CHARS[i % CHARS.length]}</div>
+      <span class="pname">${p.name || `プレイヤー${i+1}`}${i === myIdx ? ' （あなた）' : ''}</span>
+      ${i === 0 ? '<span class="phst">ホスト</span>' : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── Copy code ─────────────────────────────────────────────────
+function copyCode() {
+  navigator.clipboard.writeText(myCreateCode).catch(() => {});
+  const btn = document.getElementById('copyBtn');
+  btn.textContent = 'コピーしました！'; btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = 'コードをコピー'; btn.classList.remove('copied'); }, 2000);
+}
+
+// ── Join room ─────────────────────────────────────────────────
+async function joinRoom() {
+  const code = document.getElementById('codeInp').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const errEl = document.getElementById('joinErr');
+  const btn = document.querySelector('#lobby .lcard:last-child .btn-primary');
+  errEl.textContent = '';
+
+  if (code.length !== 4) { errEl.textContent = '4桁のコードを入力してください'; return; }
+  if (code === myCreateCode) { errEl.textContent = '自分のコードには参加できません'; return; }
+
+  btn.disabled = true; btn.textContent = '接続中…';
+  try {
+    const snap = await db.ref(`aiu-battle/${code}`).once('value');
+    const data = snap.val();
+    if (!data || !data.players || !data.players['0']) {
+      errEl.textContent = '部屋が見つかりません'; btn.disabled = false; btn.textContent = '参加する'; return;
+    }
+    if (data.phase && data.phase !== 'lobby') {
+      errEl.textContent = 'ゲームはすでに開始しています'; btn.disabled = false; btn.textContent = '参加する'; return;
+    }
+    const cnt = Object.keys(data.players).length;
+    if (cnt >= 5) { errEl.textContent = '満員です（最大5人）'; btn.disabled = false; btn.textContent = '参加する'; return; }
+
+    const newIdx = cnt;
+    const name = getName();
+    await db.ref(`aiu-battle/${code}/players/${newIdx}`).set({ name, score: 0 });
+
+    // Clean up own room
+    roomRef.child('players').off();
+    roomRef.child('phase').off();
+    db.ref(`aiu-battle/${myCreateCode}`).remove();
+
+    myIdx    = newIdx;
+    isHost   = false;
+    roomCode = code;
+    roomRef  = db.ref(`aiu-battle/${code}`);
+
+    roomRef.child(`players/${myIdx}`).onDisconnect().remove();
+
+    phase = 'waiting';
+    document.getElementById('lobby').classList.add('hidden');
+    document.getElementById('waitScreen').classList.remove('hidden');
+
+    roomRef.child('players').on('value', wSnap => {
+      if (phase !== 'waiting') return;
+      renderWaitList(wSnap.val() || {}, 'waitList2');
+    });
+    roomRef.child('phase').on('value', pSnap => {
+      if (pSnap.val() === 'answering' && (phase === 'waiting' || phase === 'lobby')) {
+        phase = 'answering';
+        startGameListeners();
+      }
+    });
+  } catch (e) {
+    console.error(e);
+    errEl.textContent = 'エラー: ' + (e.message || String(e));
+    btn.disabled = false; btn.textContent = '参加する';
+  }
+}
+
+// ── Host: start game ──────────────────────────────────────────
+async function hostStart() {
+  if (!isHost) return;
+  const btn = document.getElementById('startBtn');
+  btn.disabled = true; btn.textContent = '開始中…';
+  try {
+    const name = getName();
+    await roomRef.child('players/0/name').set(name);
+
+    const themes = shuffle(THEMES).slice(0, ROUND_N);
+    await roomRef.update({
+      phase:      'answering',
+      round:      0,
+      themes,
+      roundStart: firebase.database.ServerValue.TIMESTAMP,
+      answers:    null,
+      roundRes:   null,
+    });
+  } catch (e) {
+    console.error(e);
+    showToast('開始に失敗しました: ' + (e.message || e));
+    btn.disabled = false; btn.textContent = 'ゲーム開始（2人以上）';
+  }
+}
+
+// ── Game listeners (both players) ─────────────────────────────
+function startGameListeners() {
+  if (isHost) {
+    const name = getName();
+    roomRef.child('players/0/name').set(name);
+  }
+  document.getElementById('lobby').classList.add('hidden');
+  document.getElementById('waitScreen').classList.add('hidden');
+
+  roomRef.on('value', snap => {
+    const d = snap.val();
+    if (!d) return;
+    currentData = d;
+    const p = d.phase;
+    if (p === 'answering') renderAnswering(d);
+    else if (p === 'reveal') { clearTimer(); renderReveal(d); }
+    else if (p === 'gameEnd') { clearTimer(); renderGameEnd(d); }
+  });
+}
+
+// ── Answering ─────────────────────────────────────────────────
+function renderAnswering(d) {
+  const round  = d.round || 0;
+  const theme  = (d.themes || [])[round] || '—';
+  const char   = CHARS[myIdx % CHARS.length];
+  const rStart = d.roundStart || Date.now();
+  const answered = !!(d.answers && d.answers[myIdx]);
+
+  hideAll();
+  document.getElementById('answerScreen').classList.remove('hidden');
+
+  document.getElementById('themeText').textContent = theme;
+  document.getElementById('myChar').textContent    = char;
+  document.getElementById('myChar').style.color    = charColor(myIdx);
+  document.getElementById('myCharSpan').textContent = char;
+
+  const inp = document.getElementById('ansInp');
+  const sub = document.getElementById('submitBtn');
+  if (answered) {
+    inp.value    = (d.answers[myIdx] || {}).text || '';
+    inp.disabled = true;
+    sub.disabled = true;
+    sub.textContent = '送信済み ✓';
+  } else {
+    inp.value    = '';
+    inp.disabled = false;
+    sub.disabled = false;
+    sub.textContent = '送信';
+    setTimeout(() => inp.focus(), 150);
+  }
+
+  renderSubDots(d);
+  startTimer(rStart, d);
+}
+
+function startTimer(rStart, d) {
+  clearTimer();
+  timerIv = setInterval(() => {
+    const elapsed   = (Date.now() - rStart) / 1000;
+    const remaining = Math.max(0, ANS_SEC - elapsed);
+    const secs      = Math.ceil(remaining);
+    const el        = document.getElementById('timerNum');
+    if (el) {
+      el.textContent  = secs;
+      el.className    = 'timer-num ' + (secs <= 10 ? 'warn' : secs <= 25 ? 'mid' : 'ok');
+    }
+    if (remaining <= 0) {
+      clearTimer();
+      advanceToReveal();
+    }
+  }, 250);
+}
+
+function clearTimer() {
+  if (timerIv) { clearInterval(timerIv); timerIv = null; }
+}
+
+function advanceToReveal() {
+  db.ref(`aiu-battle/${roomCode}/phase`).transaction(curr => {
+    if (curr === 'answering') return 'reveal';
+    return undefined;
+  });
+}
+
+function renderSubDots(d) {
+  const el = document.getElementById('subDots');
+  if (!el) return;
+  const ps = d.players || {};
+  const ans = d.answers || {};
+  const cnt = Object.keys(ps).length;
+  const done = Object.keys(ans).length;
+  el.innerHTML =
+    Array.from({ length: cnt }, (_, i) =>
+      `<div class="sub-dot ${ans[i] ? 'done' : ''}" title="${(ps[i]||{}).name||''}"></div>`
+    ).join('') +
+    `<span class="sub-lbl">${done}/${cnt} 送信済み</span>`;
+  if (done >= cnt) advanceToReveal();
+}
+
+async function submitAnswer() {
+  const inp  = document.getElementById('ansInp');
+  const text = inp.value.trim();
+  if (!text) { showToast('言葉を入力してください'); return; }
+
+  const sub  = document.getElementById('submitBtn');
+  sub.disabled = true;
+  inp.disabled = true;
+
+  try {
+    await roomRef.child(`answers/${myIdx}`).set({
+      text,
+      ts: firebase.database.ServerValue.TIMESTAMP,
+    });
+    sub.textContent = '送信済み ✓';
+    showToast('送信しました！');
+  } catch (e) {
+    sub.disabled = false;
+    inp.disabled = false;
+    showToast('送信に失敗しました');
+  }
+}
+
+// ── Reveal ────────────────────────────────────────────────────
+function renderReveal(d) {
+  const round  = d.round || 0;
+  const theme  = (d.themes || [])[round] || '—';
+  const ps     = d.players || {};
+  const ans    = d.answers || {};
+  const rStart = d.roundStart || 0;
+  const pCnt   = Object.keys(ps).length;
+
+  hideAll();
+  document.getElementById('revealScreen').classList.remove('hidden');
+  document.getElementById('revRoundLbl').textContent = `ラウンド ${round + 1} / ${ROUND_N}`;
+  document.getElementById('revTheme').textContent    = theme;
+
+  // Compute round scores
+  const roundScores = {};
+  for (let i = 0; i < pCnt; i++) {
+    const a = ans[i];
+    if (!a || !a.ts) {
+      roundScores[i] = 0;
+    } else {
+      const elapsedSec = Math.max(0, (a.ts - rStart) / 1000);
+      roundScores[i] = Math.max(1, ANS_SEC - Math.floor(elapsedSec));
+    }
+  }
+
+  // Save scores (host only, once per round)
+  if (isHost && lastSavedRound !== round) {
+    lastSavedRound = round;
+    const existing = d.roundRes || {};
+    if (!existing[round]) {
+      const updates = { [`roundRes/${round}`]: roundScores };
+      // Recompute cumulative from scratch
+      const allRes = { ...existing, [round]: roundScores };
+      const totals = {};
+      for (let i = 0; i < pCnt; i++) totals[i] = 0;
+      Object.values(allRes).forEach(rr => {
+        Object.entries(rr).forEach(([idx, pts]) => {
+          totals[idx] = (totals[idx] || 0) + pts;
+        });
+      });
+      Object.entries(totals).forEach(([idx, tot]) => {
+        updates[`players/${idx}/score`] = tot;
+      });
+      roomRef.update(updates);
+    }
+  }
+
+  // Cumulative for display (including this round)
+  const allRes = { ...(d.roundRes || {}), [round]: roundScores };
+  const cumul  = {};
+  for (let i = 0; i < pCnt; i++) cumul[i] = 0;
+  Object.entries(allRes).forEach(([r, rr]) => {
+    if (+r <= round) Object.entries(rr).forEach(([i, v]) => { cumul[i] = (cumul[i]||0)+v; });
+  });
+
+  // Sort by submission time for display
+  const sorted = Array.from({ length: pCnt }, (_, i) => ({
+    idx: i,
+    name: (ps[i] || {}).name || `P${i+1}`,
+    char: CHARS[i % CHARS.length],
+    answer: ans[i] ? ans[i].text : null,
+    ts:    ans[i] ? ans[i].ts   : Infinity,
+    pts:   roundScores[i] || 0,
+  })).sort((a, b) => a.ts - b.ts);
+
+  const rankEmoji = ['👑', '🥈', '🥉', '4️⃣', '5️⃣'];
+  document.getElementById('acards').innerHTML = sorted.map((p, rank) => {
+    const isFirst = rank === 0 && p.answer;
+    return `<div class="acard ${p.idx === myIdx ? 'me' : ''} ${isFirst ? 'gold' : ''}">
+      <div class="ac-rank">${p.answer ? rankEmoji[rank] : '—'}</div>
+      <div class="ac-char" style="background:${charColor(p.idx)}">${p.char}</div>
+      <div class="ac-info">
+        <div class="ac-name">${p.name}${p.idx === myIdx ? ' (あなた)' : ''}</div>
+        <div class="ac-ans ${p.answer ? '' : 'none'}">${p.answer || '（未回答）'}</div>
+      </div>
+      <div class="ac-pts ${p.pts === 0 ? 'zero' : ''}">+${p.pts}pt</div>
+    </div>`;
+  }).join('');
+
+  // Score bars
+  const maxScore = Math.max(...Object.values(cumul), 1);
+  const scoreSorted = Object.entries(cumul)
+    .map(([i, v]) => ({ idx: +i, name: (ps[i]||{}).name || `P${+i+1}`, total: v }))
+    .sort((a, b) => b.total - a.total);
+  document.getElementById('scoreList').innerHTML = scoreSorted.map(e =>
+    `<div class="srow">
+      <span class="sname">${e.name}${e.idx === myIdx ? ' 🫵' : ''}</span>
+      <div class="sbar-wrap"><div class="sbar" style="width:${e.total/maxScore*100}%"></div></div>
+      <span class="sval">${e.total}pt</span>
+    </div>`
+  ).join('');
+
+  // Next button / countdown
+  const isLast = round >= ROUND_N - 1;
+  const nextBtn  = document.getElementById('nextBtn');
+  const nextHint = document.getElementById('nextHint');
+  clearNextTimer();
+
+  if (isHost) {
+    nextBtn.textContent = isLast ? '結果を見る' : '次のラウンドへ →';
+    nextBtn.classList.remove('hidden');
+    nextHint.classList.add('hidden');
+  } else {
+    nextBtn.classList.add('hidden');
+    nextHint.classList.remove('hidden');
+    let cnt = 12;
+    document.getElementById('nextCntEl').textContent = cnt;
+    nextIv = setInterval(() => {
+      cnt--;
+      const el = document.getElementById('nextCntEl');
+      if (el) el.textContent = cnt;
+      if (cnt <= 0) clearNextTimer();
+    }, 1000);
+  }
+}
+
+function clearNextTimer() {
+  if (nextIv) { clearInterval(nextIv); nextIv = null; }
+}
+
+function hostAdvance() {
+  if (!isHost || !currentData) return;
+  const round  = currentData.round || 0;
+  const isLast = round >= ROUND_N - 1;
+  clearNextTimer();
+
+  if (isLast) {
+    roomRef.child('phase').set('gameEnd');
+  } else {
+    roomRef.update({
+      phase:      'answering',
+      round:      round + 1,
+      answers:    null,
+      roundStart: firebase.database.ServerValue.TIMESTAMP,
+    });
+  }
+}
+
+// ── Game end ──────────────────────────────────────────────────
+function renderGameEnd(d) {
+  hideAll();
+  document.getElementById('gameEndScreen').classList.remove('hidden');
+
+  const ps = d.players || {};
+  const sorted = Object.entries(ps)
+    .map(([i, p]) => ({ idx: +i, name: p.name || `P${+i+1}`, score: p.score || 0 }))
+    .sort((a, b) => b.score - a.score);
+
+  const medals = ['🏆', '🥈', '🥉', '4️⃣', '5️⃣'];
+  document.getElementById('podium').innerHTML = sorted.map((p, i) =>
+    `<div class="pdi ${i === 0 ? 'rank1' : ''}">
+      <div class="pd-medal">${medals[i]}</div>
+      <div class="pd-name">${p.name}${p.idx === myIdx ? ' (あなた)' : ''}</div>
+      <div class="pd-score">${p.score}pt</div>
+    </div>`
+  ).join('');
+}
+
+function requestRematch() {
+  if (!roomRef) return;
+  roomRef.child(`rematch/${myIdx}`).set(true);
+  showToast('リマッチを要求しました…');
+
+  roomRef.child('rematch').on('value', snap => {
+    const rm = snap.val() || {};
+    const d  = currentData;
+    if (!d) return;
+    const cnt = Object.keys(d.players || {}).length;
+    if (Object.keys(rm).length >= cnt) {
+      roomRef.child('rematch').off();
+      if (isHost) {
+        const themes = shuffle(THEMES).slice(0, ROUND_N);
+        const resetPs = {};
+        Object.entries(d.players || {}).forEach(([i, p]) => {
+          resetPs[i] = { name: p.name, score: 0 };
+        });
+        lastSavedRound = -1;
+        roomRef.update({
+          phase:      'answering',
+          round:      0,
+          themes,
+          roundStart: firebase.database.ServerValue.TIMESTAMP,
+          answers:    null,
+          roundRes:   null,
+          rematch:    null,
+          players:    resetPs,
+        });
+      }
+    }
+  });
+}
+
+// ── Utilities ─────────────────────────────────────────────────
+function hideAll() {
+  ['lobby','waitScreen','answerScreen','revealScreen','gameEndScreen']
+    .forEach(id => document.getElementById(id).classList.add('hidden'));
+}
+
+let toastTmr;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTmr);
+  toastTmr = setTimeout(() => el.classList.remove('show'), 2800);
+}
+</script>
+<script>if('serviceWorker'in navigator)navigator.serviceWorker.register('/friend-games/service-worker.js');</script>
+</body>
+</html>

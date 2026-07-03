@@ -10,6 +10,7 @@ const PRECACHE = [
   '/friend-games/games/map-quiz/index.html',
   '/friend-games/games/maze-duel/index.html',
   '/friend-games/games/tagiron/index.html',
+  '/friend-games/games/aiue-battle/index.html',
 ];
 
 self.addEventListener('install', e => {
