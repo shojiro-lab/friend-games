@@ -193,6 +193,7 @@
       <h2>部屋に参加する</h2>
       <input class="inp" id="codeInput" type="text" maxlength="4"
         placeholder="4桁のコードを入力"
+        autocorrect="off" autocomplete="off" autocapitalize="characters" spellcheck="false"
         oninput="this.value=this.value.toUpperCase()">
       <p class="err" id="joinErr"></p>
       <button class="btn-primary" style="width:100%" onclick="joinRoom()">参加する</button>
@@ -410,17 +411,24 @@ async function joinRoom() {
 
   btn.disabled = true; btn.textContent = '接続中…';
   try {
-    // Read whole room at once
-    const snap = await db.ref(`tagiron/${code}`).once('value');
-    const data = snap.val();
+    // 1. 部屋を確認
+    const roomSnap = await db.ref(`tagiron/${code}`).once('value');
+    const data = roomSnap.val();
     if (!data || !data.players || !data.players['0']) {
-      errEl.textContent = '部屋が見つかりません'; btn.disabled = false; btn.textContent = '参加する'; return;
+      errEl.textContent = '部屋が見つかりません（ホストがページを閉じた可能性があります）';
+      btn.disabled = false; btn.textContent = '参加する'; return;
     }
     if (data.players['1']) {
       errEl.textContent = '部屋が満員です'; btn.disabled = false; btn.textContent = '参加する'; return;
     }
+    if (data.phase === 'playing') {
+      errEl.textContent = 'ゲームはすでに開始しています'; btn.disabled = false; btn.textContent = '参加する'; return;
+    }
 
-    // Leave own created room — turn off child listeners explicitly
+    // 2. 先にホストの部屋に参加（失敗しても自分の部屋がまだある状態）
+    await db.ref(`tagiron/${code}/players/1`).set(true);
+
+    // 3. 参加成功後に自分の部屋を片付ける
     roomRef.child('players/1').off();
     roomRef.child('phase').off();
     db.ref(`tagiron/${myCreateCode}`).remove();
@@ -429,11 +437,9 @@ async function joinRoom() {
     roomCode = code;
     roomRef = db.ref(`tagiron/${code}`);
 
-    await roomRef.child('players/1').set(true);
-
-    // Watch for game start
-    roomRef.child('phase').on('value', snap => {
-      if (snap.val() === 'playing' && phase === 'lobby') {
+    // 4. ゲーム開始を待つ（.on('value') は現在値をすぐ返すため race condition 対応済み）
+    roomRef.child('phase').on('value', phaseSnap => {
+      if (phaseSnap.val() === 'playing' && phase === 'lobby') {
         phase = 'playing';
         startGame();
       }
@@ -441,7 +447,7 @@ async function joinRoom() {
 
   } catch (e) {
     console.error('joinRoom error:', e);
-    errEl.textContent = 'エラーが発生しました: ' + (e.message || e);
+    errEl.textContent = 'エラーが発生しました: ' + (e.message || String(e));
     btn.disabled = false; btn.textContent = '参加する';
   }
 }
