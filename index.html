@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <!-- iPhone ホーム画面に追加でアプリ化 -->
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Friends Games">
   <title>Friends Games</title>
   <link rel="manifest" href="/friend-games/manifest.json">
@@ -15,231 +14,105 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <style>
-    /* ===== App Shell ===== */
+    body {
+      padding-top: max(env(safe-area-inset-top), 0px);
+      padding-bottom: max(env(safe-area-inset-bottom), 16px);
+    }
     .app {
-      max-width: 430px;
-      margin: 0 auto;
-      min-height: 100dvh;
-      display: flex;
-      flex-direction: column;
-      padding-bottom: max(var(--sp-lg), env(safe-area-inset-bottom, 0px));
+      padding-top: 0;
+      padding-bottom: var(--space-8);
     }
-
-    /* ===== Header ===== */
-    .app-header {
-      padding:
-        calc(env(safe-area-inset-top, 0px) + var(--sp-md))
-        var(--sp-base)
-        var(--sp-sm);
-    }
-
-    .app-title {
-      font-size: 26px;
-      font-weight: 700;
-      line-height: 1.3;
-      color: var(--ink);
-    }
-
-    .app-subtitle {
-      font-size: 14px;
-      font-weight: 400;
-      color: var(--muted);
-      margin-top: 2px;
-    }
-
-    /* ===== Section ===== */
-    .section {
-      padding: 0 var(--sp-base) var(--sp-md);
-    }
-
-    .section-label {
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.6px;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 10px;
-    }
-
-    /* ===== Tile Grid ===== */
-    .tile-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-    }
-
-    .tile-grid--3 {
-      grid-template-columns: repeat(3, 1fr);
-    }
-
-    /* ===== Game Tile ===== */
-    .game-tile {
-      display: block;
-      border-radius: 14px;
-      overflow: hidden;
-      text-decoration: none;
-      -webkit-tap-highlight-color: transparent;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.4);
-      transition: transform 0.12s ease;
-    }
-
-    .game-tile--available:active {
-      transform: scale(0.95);
-    }
-
-    .game-tile--coming {
-      opacity: 0.46;
-      pointer-events: none;
-    }
-
-    .game-tile__bg {
-      height: 128px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      padding: 0 8px 22px;
-    }
-
-    .tile-grid--3 .game-tile__bg {
-      height: 96px;
-      padding-bottom: 18px;
-    }
-
-    .game-tile__emoji {
-      font-size: 42px;
-      filter: drop-shadow(0 2px 10px rgba(0,0,0,0.35));
-      user-select: none;
-      line-height: 1;
-    }
-
-    .tile-grid--3 .game-tile__emoji {
-      font-size: 32px;
-    }
-
-    /* Title gradient strip at bottom */
-    .game-tile__title {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: linear-gradient(transparent, rgba(0,0,0,0.6));
-      color: #fff;
-      font-size: 12px;
-      font-weight: 700;
-      text-align: center;
-      padding: 10px 6px 7px;
-      line-height: 1.25;
-    }
-
-    .tile-grid--3 .game-tile__title {
-      font-size: 11px;
-      padding: 8px 4px 6px;
-    }
-
-    /* Player count badge */
-    .game-tile__badge {
-      position: absolute;
-      top: 7px;
-      left: 7px;
-      background: rgba(0,0,0,0.38);
-      color: rgba(255,255,255,0.92);
-      font-size: 10px;
-      font-weight: 600;
-      padding: 2px 6px;
-      border-radius: 20px;
-      line-height: 1.5;
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
+    .lobby-header {
+      padding-top: max(env(safe-area-inset-top), var(--space-8));
+      padding-bottom: var(--space-8);
     }
   </style>
 </head>
 <body>
   <div class="app">
-    <header class="app-header">
-      <h1 class="app-title">Friends Games</h1>
-      <p class="app-subtitle">みんなで遊ぼう</p>
+    <header class="lobby-header">
+      <div class="display">Friends Games</div>
     </header>
 
-    <main>
-      <!-- ===== 公開中 ===== -->
-      <section class="section">
-        <p class="section-label">プレイできるゲーム</p>
-        <div class="tile-grid">
+    <p class="section-label">プレイできるゲーム</p>
+    <nav class="game-list">
 
-          <a class="game-tile game-tile--available" href="games/memory-plus/index.html">
-            <div class="game-tile__bg" style="background: linear-gradient(135deg, #ff385c 0%, #ff7043 100%);">
-              <span class="game-tile__badge">1人用</span>
-              <span class="game-tile__emoji">🧮</span>
-              <span class="game-tile__title">記憶×暗算</span>
-            </div>
-          </a>
+      <a class="game-row" href="games/memory-plus/index.html">
+        <span class="game-row-icon"><i data-lucide="calculator"></i></span>
+        <span class="game-row-body">
+          <span class="game-row-title">記憶×暗算チャレンジ</span>
+          <span class="game-row-desc">数字を記憶して暗算で答える &middot; 1人用</span>
+        </span>
+        <span class="game-row-arrow"><i data-lucide="chevron-right"></i></span>
+      </a>
 
-          <a class="game-tile game-tile--available" href="games/map-quiz/index.html">
-            <div class="game-tile__bg" style="background: linear-gradient(135deg, #0d9488 0%, #0ea5e9 100%);">
-              <span class="game-tile__badge">1人用</span>
-              <span class="game-tile__emoji">🗺️</span>
-              <span class="game-tile__title">地図クイズ</span>
-            </div>
-          </a>
+      <a class="game-row" href="games/map-quiz/index.html">
+        <span class="game-row-icon"><i data-lucide="map"></i></span>
+        <span class="game-row-body">
+          <span class="game-row-title">地図クイズ</span>
+          <span class="game-row-desc">都道府県・国名を場所で当てる &middot; 1人用</span>
+        </span>
+        <span class="game-row-arrow"><i data-lucide="chevron-right"></i></span>
+      </a>
 
-          <a class="game-tile game-tile--available" href="games/maze-duel/index.html">
-            <div class="game-tile__bg" style="background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);">
-              <span class="game-tile__badge">2人用</span>
-              <span class="game-tile__emoji">🌀</span>
-              <span class="game-tile__title">迷路対決</span>
-            </div>
-          </a>
+      <a class="game-row" href="games/maze-duel/index.html">
+        <span class="game-row-icon"><i data-lucide="route"></i></span>
+        <span class="game-row-body">
+          <span class="game-row-title">迷路対決</span>
+          <span class="game-row-desc">迷路でリアルタイム対戦 &middot; 2人用</span>
+        </span>
+        <span class="game-row-arrow"><i data-lucide="chevron-right"></i></span>
+      </a>
 
-          <a class="game-tile game-tile--available" href="games/tagiron/index.html">
-            <div class="game-tile__bg" style="background: linear-gradient(135deg, #1d4ed8 0%, #38bdf8 100%);">
-              <span class="game-tile__badge">2人用</span>
-              <span class="game-tile__emoji">🔢</span>
-              <span class="game-tile__title">タギロン</span>
-            </div>
-          </a>
+      <a class="game-row" href="games/tagiron/index.html">
+        <span class="game-row-icon"><i data-lucide="hash"></i></span>
+        <span class="game-row-body">
+          <span class="game-row-title">タギロン</span>
+          <span class="game-row-desc">数字カードの論理推理ゲーム &middot; 2人用</span>
+        </span>
+        <span class="game-row-arrow"><i data-lucide="chevron-right"></i></span>
+      </a>
 
-          <a class="game-tile game-tile--available" href="games/aiue-battle/index.html">
-            <div class="game-tile__bg" style="background: linear-gradient(135deg, #b45309 0%, #f59e0b 100%);">
-              <span class="game-tile__badge">2〜5人用</span>
-              <span class="game-tile__emoji">🔤</span>
-              <span class="game-tile__title">もじあてバトル</span>
-            </div>
-          </a>
+      <a class="game-row" href="games/aiue-battle/index.html">
+        <span class="game-row-icon"><i data-lucide="whole-word"></i></span>
+        <span class="game-row-body">
+          <span class="game-row-title">もじあてバトル</span>
+          <span class="game-row-desc">1文字ずつ攻撃して言葉を当てる &middot; 2〜5人用</span>
+        </span>
+        <span class="game-row-arrow"><i data-lucide="chevron-right"></i></span>
+      </a>
 
-          <a class="game-tile game-tile--available" href="games/salvage/index.html">
-            <div class="game-tile__bg" style="background: linear-gradient(135deg, #0369a1 0%, #06b6d4 100%);">
-              <span class="game-tile__badge">2〜6人用</span>
-              <span class="game-tile__emoji">🤿</span>
-              <span class="game-tile__title">サルベージ</span>
-            </div>
-          </a>
+      <a class="game-row" href="games/salvage/index.html">
+        <span class="game-row-icon"><i data-lucide="anchor"></i></span>
+        <span class="game-row-body">
+          <span class="game-row-title">サルベージ</span>
+          <span class="game-row-desc">深海から財宝を回収するチキンレース &middot; 2〜6人用</span>
+        </span>
+        <span class="game-row-arrow"><i data-lucide="chevron-right"></i></span>
+      </a>
 
-        </div>
-      </section>
+    </nav>
 
-      <!-- ===== 近日公開 ===== -->
-      <section class="section">
-        <p class="section-label">近日公開</p>
-        <div class="tile-grid tile-grid--3">
+    <p class="section-label">近日公開</p>
+    <div class="game-list">
 
-          <div class="game-tile game-tile--coming">
-            <div class="game-tile__bg" style="background: linear-gradient(135deg, #374151 0%, #6b7280 100%);">
-              <span class="game-tile__badge">2人以上</span>
-              <span class="game-tile__emoji">🕵️</span>
-              <span class="game-tile__title">コードネーム</span>
-            </div>
-          </div>
+      <div class="game-row game-row--soon">
+        <span class="game-row-icon"><i data-lucide="user-round-search"></i></span>
+        <span class="game-row-body">
+          <span class="game-row-title">コードネーム</span>
+          <span class="game-row-desc">ワードによるスパイゲーム &middot; 4人以上</span>
+        </span>
+      </div>
 
-        </div>
-      </section>
-    </main>
+    </div>
   </div>
+
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/friend-games/service-worker.js');
     }
   </script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>lucide.createIcons();</script>
 </body>
 </html>
