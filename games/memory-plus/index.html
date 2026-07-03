@@ -7,6 +7,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="記憶×暗算">
 <title>記憶×暗算チャレンジ</title>
+<link rel="manifest" href="/friend-games/manifest.json">
+<link rel="apple-touch-icon" href="/friend-games/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/friend-games/icons/favicon-32.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../style.css">
@@ -647,5 +650,6 @@ document.addEventListener('keydown', function(e) {
 
 loadBest();
 </script>
+<script>if('serviceWorker'in navigator)navigator.serviceWorker.register('/friend-games/service-worker.js');</script>
 </body>
 </html>
