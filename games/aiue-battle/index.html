@@ -424,15 +424,19 @@ async function joinRoom() {
     document.getElementById('lobby').classList.add('hidden');
     document.getElementById('waitScreen').classList.remove('hidden');
 
-    roomRef.child('players').on('value', wSnap => {
-      if (phase !== 'waiting') return;
-      renderWaitList(wSnap.val() || {}, 'waitList2');
-    });
-    roomRef.child('phase').on('value', pSnap => {
-      if (pSnap.val() === 'writing' && (phase === 'waiting' || phase === 'lobby')) {
-        phase = 'writing';
-        startGameListeners();
+    roomRef.on('value', snap => {
+      const d = snap.val();
+      if (!d) return;
+      currentData = d;
+      if (phase === 'waiting') {
+        renderWaitList(d.players || {}, 'waitList2');
+        if (!d.phase || d.phase === 'lobby') return;
+        phase = d.phase;
+        document.getElementById('waitScreen').classList.add('hidden');
       }
+      if (d.phase === 'writing')        renderWriting(d);
+      else if (d.phase === 'attacking') renderAttacking(d);
+      else if (d.phase === 'gameEnd')   renderGameEnd(d);
     });
   } catch (e) {
     console.error(e);
