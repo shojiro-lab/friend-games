@@ -5,13 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>あいうえバトル — Friends Games</title>
+  <title>もじあてバトル — Friends Games</title>
   <link rel="manifest" href="/friend-games/manifest.json">
   <link rel="apple-touch-icon" href="/friend-games/icons/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/friend-games/icons/favicon-32.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../../style.css">
+  <script src="data/topics.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
   <style>
@@ -37,7 +38,7 @@
     .inp { width: 100%; background: var(--surface); border: 1px solid var(--border);
            border-radius: var(--r-sm); padding: var(--sp-sm) var(--sp-base); color: var(--ink);
            font-family: var(--font); font-size: 17px; outline: none;
-           margin-bottom: var(--sp-sm); min-height: 44px; }
+           margin-bottom: var(--sp-sm); min-height: 44px; box-sizing: border-box; }
     .inp:focus { border-color: var(--rausch); }
     .inp.code-inp { letter-spacing: .1em; text-transform: uppercase; }
     .inp.code-inp::placeholder { text-transform: none; letter-spacing: 0; }
@@ -49,67 +50,91 @@
     .or-div { display: flex; align-items: center; gap: var(--sp-sm); color: var(--muted); font-size: 13px; }
     .or-div::before,.or-div::after { content: ''; flex: 1; height: 1px; background: var(--hairline); }
     .err { font-size: 13px; color: var(--ng); min-height: 18px; margin-top: 4px; }
+    .sec-label { font-size: 11px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+                 color: var(--muted); margin: var(--sp-md) 0 var(--sp-sm); }
 
-    /* ── Player list (lobby) ── */
+    /* ── Player list ── */
     .plist { display: flex; flex-direction: column; gap: 6px; margin: var(--sp-sm) 0; }
-    .prow { display: flex; align-items: center; gap: var(--sp-sm); padding: var(--sp-xs) var(--sp-sm);
-            background: var(--surface-raised); border-radius: var(--r-sm); }
+    .prow  { display: flex; align-items: center; gap: var(--sp-sm); padding: var(--sp-xs) var(--sp-sm);
+             background: var(--surface-raised); border-radius: var(--r-sm); }
     .pname { font-size: 14px; font-weight: 500; color: var(--ink); flex: 1; }
     .phst  { font-size: 11px; color: var(--rausch); font-weight: 600; }
-    .wh { font-size: 12px; color: var(--muted); text-align: center; margin-top: var(--sp-sm); }
+    .wh    { font-size: 12px; color: var(--muted); text-align: center; margin-top: var(--sp-sm); }
     .dots::after { content: ''; animation: dots 1.2s steps(4,end) infinite; }
     @keyframes dots { 0%,100%{content:''} 25%{content:'.'} 50%{content:'..'} 75%{content:'...'} }
 
-    /* ── Theme card ── */
+    /* ── Theme selection (host only) ── */
+    .theme-sel-row { display: flex; gap: var(--sp-sm); align-items: center; }
+    .theme-inp { flex: 1; background: var(--surface); border: 1px solid var(--border);
+                 border-radius: var(--r-sm); padding: var(--sp-sm) var(--sp-base); color: var(--ink);
+                 font-family: var(--font); font-size: 16px; outline: none; min-height: 44px;
+                 box-sizing: border-box; }
+    .theme-inp:focus { border-color: var(--rausch); }
+    .dice-btn { min-width: 44px; min-height: 44px; border: 1px solid var(--border);
+                background: var(--surface); border-radius: var(--r-sm); font-size: 22px;
+                cursor: pointer; flex-shrink: 0; }
+    .topics-list { display: flex; flex-wrap: wrap; gap: 6px; max-height: 88px;
+                   overflow-y: auto; margin-top: var(--sp-sm); }
+    .topic-chip { padding: 5px 10px; border-radius: 20px; font-size: 13px;
+                  background: var(--surface-raised); border: 1px solid var(--border);
+                  cursor: pointer; color: var(--ink); white-space: nowrap; }
+    .topic-chip.selected { background: var(--rausch-dim); border-color: var(--rausch); color: var(--rausch); }
+
+    /* ── Theme card (writing + attack screens) ── */
     .theme-card { background: var(--surface-card); border: 1px solid var(--hairline);
                   border-radius: var(--r-md); padding: var(--sp-base); text-align: center; }
     .theme-lbl { font-size: 11px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
                  color: var(--muted); }
-    .theme-txt { font-size: 30px; font-weight: 700; color: var(--ink); margin-top: 4px; }
+    .theme-txt { font-size: 28px; font-weight: 700; color: var(--ink); margin-top: 4px; }
 
     /* ── Writing phase ── */
-    .word-inputs { display: flex; flex-direction: column; gap: var(--sp-sm); }
-    .word-row { display: flex; align-items: center; gap: var(--sp-sm); }
-    .word-label { font-size: 13px; font-weight: 600; color: var(--muted); width: 44px; flex-shrink: 0; }
-    .word-inp { flex: 1; background: var(--surface); border: 1px solid var(--border);
-                border-radius: var(--r-sm); padding: var(--sp-sm) var(--sp-base); color: var(--ink);
-                font-family: var(--font); font-size: 18px; outline: none; min-height: 44px; }
-    .word-inp:focus { border-color: var(--rausch); }
-    .word-inp.valid { border-color: var(--ok); }
-    .word-inp.invalid { border-color: var(--ng); }
-    .word-len { font-size: 12px; color: var(--muted); width: 30px; text-align: right; flex-shrink: 0; }
-    .write-hint { font-size: 12px; color: var(--muted); margin-top: var(--sp-xs); }
-    .write-status { display: flex; gap: var(--sp-sm); flex-wrap: wrap; margin-top: var(--sp-sm); }
-    .ws-dot { font-size: 12px; color: var(--muted); }
-    .ws-dot.done { color: var(--ok); }
+    .word-wrap { display: flex; flex-direction: column; gap: var(--sp-sm); }
+    .big-inp { width: 100%; background: var(--surface); border: 2px solid var(--border);
+               border-radius: var(--r-sm); padding: 12px var(--sp-base); color: var(--ink);
+               font-family: var(--font); font-size: 22px; outline: none; min-height: 52px;
+               box-sizing: border-box; }
+    .big-inp:focus { border-color: var(--rausch); }
+    .big-inp.valid   { border-color: var(--ok); }
+    .big-inp.invalid { border-color: var(--ng); }
+    .preview-box { background: var(--surface-raised); border: 1px solid var(--border);
+                   border-radius: var(--r-sm); padding: var(--sp-sm) var(--sp-base);
+                   min-height: 52px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+    .preview-lbl { font-size: 11px; color: var(--muted); width: 100%; margin-bottom: 4px; }
+    .prev-tile { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--ok);
+                 background: rgba(34,197,94,.1); color: var(--ok); font-size: 17px; font-weight: 600;
+                 display: inline-flex; align-items: center; justify-content: center; }
+    .write-hint { font-size: 12px; color: var(--muted); }
+    .write-status { display: flex; gap: var(--sp-sm); flex-wrap: wrap; }
+    .ws-dot { font-size: 13px; color: var(--muted); }
+    .ws-dot.done { color: var(--ok); font-weight: 600; }
 
     /* ── Status bar ── */
     .status-bar { background: var(--surface-card); border: 1px solid var(--hairline);
-                  border-radius: var(--r-sm); padding: var(--sp-sm) var(--sp-base);
+                  border-radius: var(--r-sm); padding: 10px var(--sp-base);
                   font-size: 13px; color: var(--body-text); text-align: center;
-                  min-height: 44px; display: flex; align-items: center; justify-content: center; }
+                  min-height: 48px; display: flex; align-items: center; justify-content: center;
+                  flex-direction: column; gap: 2px; }
     .status-bar.myturn { border-color: var(--rausch); color: var(--rausch);
                          background: rgba(255,56,92,.06); font-weight: 600; }
+    .status-sub { font-size: 11px; font-weight: 400; opacity: .8; }
 
     /* ── Player word cards ── */
     .pcards { display: flex; flex-direction: column; gap: 8px; }
     .pcard { background: var(--surface-card); border: 1px solid var(--hairline);
              border-radius: var(--r-sm); padding: 10px var(--sp-base); }
     .pcard.me   { border-color: var(--rausch); background: rgba(255,56,92,.03); }
-    .pcard.elim { opacity: .45; }
-    .pcard-header { display: flex; align-items: center; gap: var(--sp-sm); margin-bottom: 6px; }
+    .pcard.elim { opacity: .4; }
+    .pcard.active-turn { border-color: #f59e0b; }
+    .pc-header { display: flex; align-items: center; gap: var(--sp-sm); margin-bottom: 8px; }
     .pc-name { font-size: 13px; font-weight: 600; color: var(--ink); flex: 1; }
-    .pc-lives { display: flex; gap: 3px; }
-    .life-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--rausch); }
-    .life-dot.lost { background: var(--surface-raised); border: 1px solid var(--border); }
-    .pcard-words { display: flex; flex-wrap: wrap; gap: 6px; }
-    .wchip { font-size: 13px; padding: 4px 10px; border-radius: 20px;
-             border: 1px solid var(--border); background: var(--surface);
-             color: var(--muted); letter-spacing: .1em; }
-    .wchip.mine    { background: var(--rausch-dim); border-color: var(--rausch); color: var(--rausch); font-weight: 600; }
-    .wchip.revealed { background: rgba(34,197,94,.12); border-color: var(--ok); color: var(--ok); }
-    .wchip.just-revealed { animation: pop .4s ease; }
-    @keyframes pop { 0%{transform:scale(1)} 50%{transform:scale(1.12)} 100%{transform:scale(1)} }
+    .word-tiles { display: flex; gap: 4px; flex-wrap: wrap; }
+    .tile { width: 34px; height: 34px; border-radius: 8px; font-size: 17px; font-weight: 600;
+            display: inline-flex; align-items: center; justify-content: center; }
+    .tile-h { background: var(--surface-raised); border: 1px solid var(--border); color: var(--muted); }
+    .tile-r { background: rgba(34,197,94,.15); border: 1px solid var(--ok); color: var(--ok); }
+    .tile-m { background: var(--rausch-dim); border: 1px solid var(--rausch); color: var(--rausch); }
+    .tile-new { animation: tpop .4s ease; }
+    @keyframes tpop { 0%{transform:scale(1)} 40%{transform:scale(1.3)} 100%{transform:scale(1)} }
 
     /* ── Hiragana board ── */
     .board-wrap { background: var(--surface-card); border: 1px solid var(--hairline);
@@ -120,38 +145,43 @@
     .bc { height: 44px; border-radius: 8px; border: 1px solid var(--border);
           background: var(--surface); font-size: 18px; font-weight: 500; color: var(--ink);
           display: flex; align-items: center; justify-content: center; cursor: pointer;
-          transition: background .1s, border-color .1s; font-family: var(--font);
+          transition: background .1s, transform .08s; font-family: var(--font);
           -webkit-tap-highlight-color: transparent; }
-    .bc:empty, .bc.spacer { background: transparent; border-color: transparent; cursor: default; pointer-events: none; }
-    .bc.attacked { opacity: .2; text-decoration: line-through; cursor: not-allowed; background: transparent; }
-    .bc.active:not(.attacked):active { background: var(--rausch-dim); border-color: var(--rausch); transform: scale(.93); }
-    .bc.active:not(.attacked) { border-color: var(--rausch); background: rgba(255,56,92,.06); cursor: pointer; }
+    .bc.spacer { background: transparent; border-color: transparent; pointer-events: none; }
+    .bc.attacked { opacity: .2; cursor: not-allowed; background: transparent; }
+    .bc.can-attack { border-color: var(--rausch); background: rgba(255,56,92,.06); }
+    .bc.can-attack:active { transform: scale(.9); background: var(--rausch-dim); }
+    /* ー gets full-width */
+    .bc.longvowel { grid-column: 1 / -1; font-size: 20px; letter-spacing: .3em; }
 
     /* ── Game end ── */
     .podium { display: flex; flex-direction: column; gap: var(--sp-sm); }
     .pdi { background: var(--surface-card); border: 1px solid var(--hairline);
            border-radius: var(--r-md); padding: var(--sp-base);
-           display: flex; align-items: center; gap: var(--sp-md); }
+           display: flex; align-items: flex-start; gap: var(--sp-md); }
     .pdi.rank1 { border-color: #f59e0b; background: rgba(245,158,11,.06); }
-    .pd-medal { font-size: 28px; flex-shrink: 0; }
-    .pd-name  { font-size: 16px; font-weight: 600; color: var(--ink); flex: 1; }
-    .pd-score { font-size: 14px; color: var(--muted); }
+    .pd-medal  { font-size: 26px; flex-shrink: 0; line-height: 1.2; }
+    .pd-info   { flex: 1; }
+    .pd-name   { font-size: 15px; font-weight: 600; color: var(--ink); }
+    .pd-word   { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .pd-tiles  { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 6px; }
 
-    /* ── Misc ── */
+    /* ── Buttons ── */
     .btn-row { display: flex; gap: var(--sp-sm); }
-    .gbtn { flex: 1; padding: 10px var(--sp-base); min-height: 44px; border: 1px solid var(--border);
-            background: var(--surface-card); color: var(--ink); font-family: var(--font); font-size: 14px;
-            border-radius: var(--r-sm); cursor: pointer; transition: background .2s, border-color .2s; }
+    .gbtn { flex: 1; padding: 10px; min-height: 44px; border: 1px solid var(--border);
+            background: var(--surface-card); color: var(--ink); font-family: var(--font);
+            font-size: 14px; border-radius: var(--r-sm); cursor: pointer; }
     .gbtn.primary { border-color: var(--rausch); color: var(--rausch); }
     .gbtn.primary:hover { background: var(--rausch-dim); }
     .gbtn:disabled { opacity: .4; cursor: not-allowed; }
-    .sec-label { font-size: 11px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
-                 color: var(--muted); }
+
+    /* ── Toast ── */
     .toast { position: fixed; bottom: max(24px, env(safe-area-inset-bottom,24px));
              left: 50%; transform: translateX(-50%); background: var(--surface-raised);
              color: var(--ink); border: 1px solid var(--border); padding: 9px 18px;
              border-radius: var(--r-md); font-size: 13px; z-index: 2000;
-             opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap; }
+             opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap;
+             max-width: 90vw; overflow: hidden; text-overflow: ellipsis; }
     .toast.show { opacity: 1; }
     .hidden { display: none !important; }
   </style>
@@ -159,8 +189,8 @@
 <body>
 <div class="page">
   <a class="back-link" href="../../index.html">‹ ロビーに戻る</a>
-  <h1 class="page-title">あいうえバトル</h1>
-  <p class="page-sub">AIUEO BATTLE — 言葉当て推理</p>
+  <h1 class="page-title">もじあてバトル</h1>
+  <p class="page-sub">WORD BATTLE — 言葉当て推理</p>
 
   <!-- ══ LOBBY ══ -->
   <div id="lobby">
@@ -176,7 +206,17 @@
       <button class="copy-btn" id="copyBtn" onclick="copyCode()">コードをコピー</button>
       <div class="plist" id="waitList"></div>
       <p class="wh" id="waitHint">参加者を待っています<span class="dots"></span></p>
-      <button class="btn-primary" id="startBtn" style="width:100%;margin-top:var(--sp-sm)" disabled onclick="hostStart()">
+
+      <!-- Host only: theme selection -->
+      <div class="sec-label">お題を決める</div>
+      <div class="theme-sel-row">
+        <input class="theme-inp" id="themeInput" type="text" maxlength="20"
+          placeholder="お題を入力…（例：動物）">
+        <button class="dice-btn" onclick="rerollTheme()" title="ランダムに変更">🎲</button>
+      </div>
+      <div class="topics-list" id="topicsList"></div>
+
+      <button class="btn-primary" id="startBtn" style="width:100%;margin-top:var(--sp-base)" disabled onclick="hostStart()">
         ゲーム開始（2人以上）
       </button>
     </div>
@@ -194,7 +234,7 @@
     </div>
   </div>
 
-  <!-- ══ WAIT (joiner before start) ══ -->
+  <!-- ══ WAIT (guest, before game start) ══ -->
   <div id="waitScreen" class="hidden">
     <div class="lcard">
       <h2>参加済み — ホストの開始を待っています</h2>
@@ -211,16 +251,23 @@
     </div>
 
     <div class="lcard">
-      <h2>言葉を3つ入力してください</h2>
-      <div class="word-inputs" id="wordInputs">
-        <!-- 3 rows inserted by JS -->
+      <h2>言葉を入力してください（2〜10文字）</h2>
+      <div class="word-wrap">
+        <input class="big-inp" id="wordInput" type="text" maxlength="20"
+          placeholder="ひらがな・カタカナ・ー"
+          autocorrect="off" autocomplete="off"
+          oninput="onWordInput()">
+        <div class="preview-box" id="previewBox">
+          <span class="preview-lbl">変換後（登録形）</span>
+          <span id="previewEmpty" style="font-size:13px;color:var(--muted)">入力すると変換後の形が表示されます</span>
+        </div>
+        <p class="write-hint" id="wordErr"></p>
       </div>
-      <p class="write-hint">・ひらがなのみ・2〜10文字・お題に沿った言葉</p>
-      <div class="write-status" id="writeStatus"></div>
+      <div class="write-status" id="writeStatus" style="margin-top:var(--sp-sm)"></div>
     </div>
 
-    <button class="btn-primary" id="doneBtn" style="width:100%" disabled onclick="doneWriting()">
-      完了（3語入力後に押してください）
+    <button class="btn-primary" id="doneBtn" style="width:100%" disabled onclick="submitWord()">
+      決定
     </button>
   </div>
 
@@ -231,7 +278,7 @@
     <div class="pcards" id="pcards"></div>
 
     <div class="board-wrap">
-      <div class="board-lbl">文字ボード — タップして攻撃</div>
+      <div class="board-lbl">攻撃する文字を選ぶ</div>
       <div class="board" id="board"></div>
     </div>
   </div>
@@ -240,7 +287,7 @@
   <div id="gameEndScreen" class="hidden">
     <div class="theme-card">
       <div class="theme-lbl">ゲーム終了！</div>
-      <div class="theme-txt" style="font-size:20px">お疲れ様でした</div>
+      <div class="theme-txt" style="font-size:20px" id="endTitle">お疲れ様でした</div>
     </div>
     <div class="podium" id="podium"></div>
     <div class="btn-row" style="margin-top:var(--sp-sm)">
@@ -267,10 +314,10 @@ firebase.initializeApp(FB);
 const db = firebase.database();
 
 // ── Constants ─────────────────────────────────────────────
-const LIVES = 3;
 const WORD_MIN = 2, WORD_MAX = 10;
 
-// Hiragana board ('' = spacer cell)
+// Board: 清音46 + ー (spacers for ya/wa rows)
+// ー is rendered as a full-width row at the bottom
 const BOARD_ROWS = [
   ['あ','い','う','え','お'],
   ['か','き','く','け','こ'],
@@ -282,23 +329,43 @@ const BOARD_ROWS = [
   ['や','','ゆ','','よ'],
   ['ら','り','る','れ','ろ'],
   ['わ','','を','','ん'],
-  ['っ','ゃ','ゅ','ょ',''],
 ];
-const ALL_CHARS = BOARD_ROWS.flat().filter(Boolean);
+const ALL_SEION = BOARD_ROWS.flat().filter(Boolean);
+const SEION_SET = new Set([...ALL_SEION, 'ー']);
 
-const THEMES = [
-  '動物', '食べ物', '国の名前', '日本の都道府県', 'スポーツ',
-  '映画・ドラマ', '歌手・アーティスト', '色の名前', '乗り物', '職業',
-  '楽器', '花・植物', '魚・海の生き物', '野菜', '果物',
-  '飲み物', '有名人', '料理の名前', '体の部位', '学校の科目',
-  '家具・家電', '服・ファッション', '場所・建物', 'キャラクター名', '季節・天気',
-];
+// Normalization maps
+const VOICED = {
+  'が':'か','ぎ':'き','ぐ':'く','げ':'け','ご':'こ',
+  'ざ':'さ','じ':'し','ず':'す','ぜ':'せ','ぞ':'そ',
+  'だ':'た','ぢ':'ち','づ':'つ','で':'て','ど':'と',
+  'ば':'は','び':'ひ','ぶ':'ふ','べ':'へ','ぼ':'ほ',
+  'ぱ':'は','ぴ':'ひ','ぷ':'ふ','ぺ':'へ','ぽ':'ほ',
+  'ゔ':'う',
+};
+const SMALL = {
+  'ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お',
+  'ゃ':'や','ゅ':'ゆ','ょ':'よ','っ':'つ','ゎ':'わ',
+};
+
+function normalize(input) {
+  // Katakana → Hiragana (ァ=U+30A1 → ぁ=U+3041, ヴ→ゔ included)
+  let s = input.replace(/[ァ-ヴ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+  // Voiced/semi-voiced → seion, small → large
+  return [...s].map(c => VOICED[c] || SMALL[c] || c).join('');
+}
+
+function isValidInput(raw) {
+  return /^[ぁ-んァ-ヴー]+$/.test(raw);
+}
+
+function isValidNorm(norm) {
+  return norm.length >= WORD_MIN && norm.length <= WORD_MAX && [...norm].every(c => SEION_SET.has(c));
+}
 
 // ── State ─────────────────────────────────────────────────
 let myIdx = 0, isHost = true, phase = 'lobby';
 let roomCode, roomRef, myCreateCode;
 let currentData = null;
-// Track just-revealed chips for animation
 let justRevealedSet = new Set();
 
 // ── Helpers ───────────────────────────────────────────────
@@ -317,27 +384,43 @@ function shuffle(a) {
   return r;
 }
 function getName() {
-  const v = (document.getElementById('nameInp').value || '').trim();
-  return v || `プレイヤー${myIdx + 1}`;
+  return (document.getElementById('nameInp').value || '').trim() || `プレイヤー${myIdx + 1}`;
 }
-function isValidWord(w) {
-  return /^[ぁ-ん]{2,10}$/.test(w);
-}
-// Get revealed array safely (Firebase may return object or array)
-function getRevArr(revealed, pidx) {
+// Get revealed array safely (Firebase numeric keys → array)
+function getRevArr(revealed, pidx, wordLen) {
   const r = (revealed || {})[pidx];
-  if (!r) return Array(LIVES).fill(false);
+  const len = wordLen || 0;
+  if (!r) return Array(len).fill(false);
   if (Array.isArray(r)) return r;
-  return Array.from({length: LIVES}, (_, i) => !!r[i]);
+  return Array.from({length: len}, (_, i) => !!r[i]);
 }
-// Get words array safely (Firebase numeric keys may return object)
-function getWords(words, pidx) {
-  const w = (words || {})[pidx];
-  if (!w) return [];
-  if (Array.isArray(w)) return w;
-  return Object.keys(w).sort((a,b) => +a - +b).map(k => w[k]);
+// Check if player is eliminated (all chars revealed)
+function isElim(revealed, words, pidx) {
+  const w = (words || {})[pidx] || '';
+  if (!w) return false;
+  return getRevArr(revealed, pidx, w.length).every(Boolean);
 }
-function isElim(revArr) { return revArr.every(Boolean); }
+
+// ── Topic chips ───────────────────────────────────────────
+function initTopics() {
+  const el = document.getElementById('topicsList');
+  if (!el || typeof TOPICS === 'undefined') return;
+  el.innerHTML = TOPICS.map(t =>
+    `<span class="topic-chip" onclick="selectTopic('${t}')">${t}</span>`
+  ).join('');
+  rerollTheme();
+}
+function selectTopic(t) {
+  document.getElementById('themeInput').value = t;
+  document.querySelectorAll('.topic-chip').forEach(c => {
+    c.classList.toggle('selected', c.textContent === t);
+  });
+}
+function rerollTheme() {
+  if (typeof TOPICS === 'undefined') return;
+  const t = shuffle(TOPICS)[0];
+  selectTopic(t);
+}
 
 // ── Lobby init ────────────────────────────────────────────
 (function initLobby() {
@@ -348,8 +431,9 @@ function isElim(revArr) { return revArr.every(Boolean); }
   roomRef  = db.ref(`aiu-battle/${roomCode}`);
 
   document.getElementById('createCode').textContent = roomCode;
-  roomRef.child('players/0').set({ name: '—', score: 0 });
+  roomRef.child('players/0').set({ name: '—' });
   roomRef.onDisconnect().remove();
+  initTopics();
 
   roomRef.child('players').on('value', snap => {
     if (phase !== 'lobby') return;
@@ -379,17 +463,17 @@ function renderWaitList(players, elId) {
 }
 
 function copyCode() {
-  navigator.clipboard.writeText(myCreateCode).catch(()=>{});
+  navigator.clipboard.writeText(myCreateCode).catch(() => {});
   const btn = document.getElementById('copyBtn');
   btn.textContent = 'コピーしました！'; btn.classList.add('copied');
-  setTimeout(() => { btn.textContent='コードをコピー'; btn.classList.remove('copied'); }, 2000);
+  setTimeout(() => { btn.textContent = 'コードをコピー'; btn.classList.remove('copied'); }, 2000);
 }
 
 // ── Join room ─────────────────────────────────────────────
 async function joinRoom() {
-  const code   = document.getElementById('codeInp').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
-  const errEl  = document.getElementById('joinErr');
-  const btn    = document.querySelector('#lobby .lcard:last-child .btn-primary');
+  const code  = document.getElementById('codeInp').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const errEl = document.getElementById('joinErr');
+  const btn   = document.querySelector('#lobby .lcard:last-child .btn-primary');
   errEl.textContent = '';
   if (code.length !== 4) { errEl.textContent = '4桁のコードを入力してください'; return; }
   if (code === myCreateCode) { errEl.textContent = '自分のコードには参加できません'; return; }
@@ -398,7 +482,7 @@ async function joinRoom() {
   try {
     const snap = await db.ref(`aiu-battle/${code}`).once('value');
     const data = snap.val();
-    if (!data || !data.players || !data.players['0']) {
+    if (!data || !data.players) {
       errEl.textContent = '部屋が見つかりません'; btn.disabled = false; btn.textContent = '参加する'; return;
     }
     if (data.phase && data.phase !== 'lobby') {
@@ -408,7 +492,7 @@ async function joinRoom() {
     if (cnt >= 5) { errEl.textContent = '満員です（最大5人）'; btn.disabled = false; btn.textContent = '参加する'; return; }
 
     const newIdx = cnt;
-    await db.ref(`aiu-battle/${code}/players/${newIdx}`).set({ name: getName(), score: 0 });
+    await db.ref(`aiu-battle/${code}/players/${newIdx}`).set({ name: getName() });
 
     roomRef.child('players').off();
     roomRef.child('phase').off();
@@ -451,18 +535,19 @@ async function hostStart() {
   const btn = document.getElementById('startBtn');
   btn.disabled = true; btn.textContent = '開始中…';
   try {
-    const name = getName();
+    const name  = getName();
+    const theme = (document.getElementById('themeInput').value || '').trim() || shuffle(TOPICS)[0];
     await roomRef.child('players/0/name').set(name);
-    const theme = shuffle(THEMES)[0];
     await roomRef.update({
-      phase:      'writing',
+      phase:       'writing',
       theme,
-      words:      null,
+      words:       null,
       writingDone: null,
-      revealed:   null,
-      attacked:   null,
-      turn:       0,
-      winner:     null,
+      revealed:    null,
+      attacked:    null,
+      turn:        0,
+      attackPhase: 1,
+      winner:      null,
     });
   } catch (e) {
     showToast('開始に失敗: ' + (e.message || e));
@@ -470,7 +555,7 @@ async function hostStart() {
   }
 }
 
-// ── Game listeners ────────────────────────────────────────
+// ── Game listeners (host path) ────────────────────────────
 function startGameListeners() {
   if (isHost) roomRef.child('players/0/name').set(getName());
   document.getElementById('lobby').classList.add('hidden');
@@ -480,10 +565,9 @@ function startGameListeners() {
     const d = snap.val();
     if (!d) return;
     currentData = d;
-    const p = d.phase;
-    if (p === 'writing')   renderWriting(d);
-    else if (p === 'attacking') renderAttacking(d);
-    else if (p === 'gameEnd')   renderGameEnd(d);
+    if (d.phase === 'writing')        renderWriting(d);
+    else if (d.phase === 'attacking') renderAttacking(d);
+    else if (d.phase === 'gameEnd')   renderGameEnd(d);
   });
 }
 
@@ -494,83 +578,107 @@ function renderWriting(d) {
   document.getElementById('writeTheme').textContent = d.theme || '—';
 
   const done = (d.writingDone || {})[myIdx];
-  const container = document.getElementById('wordInputs');
+  const wBtn = document.getElementById('doneBtn');
 
   if (done) {
-    const myWords = getWords(d.words, myIdx);
-    container.innerHTML = myWords.map((w, i) =>
-      `<div class="word-row">
-        <span class="word-label">語 ${i+1}</span>
-        <input class="word-inp valid" value="${w}" disabled>
-      </div>`
-    ).join('');
-    document.getElementById('doneBtn').disabled = true;
-    document.getElementById('doneBtn').textContent = '送信済み ✓';
+    const myWord = (d.words || {})[myIdx] || '';
+    document.getElementById('wordInput').value = '';
+    document.getElementById('wordInput').disabled = true;
+    wBtn.disabled = true; wBtn.textContent = '登録済み ✓';
+    showPreview(myWord, true);
   } else {
-    container.innerHTML = Array.from({length: LIVES}, (_, i) =>
-      `<div class="word-row">
-        <span class="word-label">語 ${i+1}</span>
-        <input class="word-inp" id="wi${i}" type="text" maxlength="10"
-          placeholder="${WORD_MIN}〜${WORD_MAX}文字のひらがな"
-          autocorrect="off" autocomplete="off" oninput="onWordInput()">
-        <span class="word-len" id="wl${i}">0</span>
-      </div>`
-    ).join('');
-    document.getElementById('doneBtn').disabled = true;
-    document.getElementById('doneBtn').textContent = '完了（3語入力後に押してください）';
+    document.getElementById('wordInput').disabled = false;
+    wBtn.disabled = true; wBtn.textContent = '決定';
+    onWordInput();
   }
 
-  // Show who has submitted
   const players = d.players || {};
   const wDone   = d.writingDone || {};
   document.getElementById('writeStatus').innerHTML =
-    Object.entries(players).sort((a,b)=>+a[0]-+b[0]).map(([i, p]) =>
+    Object.entries(players).sort((a,b) => +a[0]-+b[0]).map(([i, p]) =>
       `<span class="ws-dot ${wDone[i] ? 'done' : ''}">
-        ${wDone[i] ? '✓' : '…'} ${p.name||`P${+i+1}`}
+        ${wDone[i] ? '✓' : '…'} ${p.name || `P${+i+1}`}
       </span>`
     ).join('');
 }
 
 function onWordInput() {
-  let allValid = true;
-  for (let i = 0; i < LIVES; i++) {
-    const inp = document.getElementById(`wi${i}`);
-    const lenEl = document.getElementById(`wl${i}`);
-    if (!inp) { allValid = false; continue; }
-    const v = inp.value;
-    lenEl.textContent = v.length;
-    const valid = isValidWord(v);
-    inp.className = 'word-inp ' + (v ? (valid ? 'valid' : 'invalid') : '');
-    if (!valid) allValid = false;
+  const raw   = document.getElementById('wordInput').value;
+  const errEl = document.getElementById('wordErr');
+  const wBtn  = document.getElementById('doneBtn');
+  errEl.textContent = '';
+
+  if (!raw) {
+    showPreview('', false);
+    wBtn.disabled = true;
+    return;
   }
-  document.getElementById('doneBtn').disabled = !allValid;
+  if (!isValidInput(raw)) {
+    errEl.textContent = 'ひらがな・カタカナ・長音符（ー）のみ入力できます';
+    showPreview('', false);
+    wBtn.disabled = true;
+    document.getElementById('wordInput').className = 'big-inp invalid';
+    return;
+  }
+
+  const norm = normalize(raw);
+  showPreview(norm, isValidNorm(norm));
+
+  if (!isValidNorm(norm)) {
+    errEl.textContent = `変換後が${WORD_MIN}〜${WORD_MAX}文字になるよう入力してください（現在${norm.length}文字）`;
+    wBtn.disabled = true;
+    document.getElementById('wordInput').className = 'big-inp invalid';
+  } else {
+    document.getElementById('wordInput').className = 'big-inp valid';
+    wBtn.disabled = false;
+  }
 }
 
-async function doneWriting() {
-  const words = [];
-  for (let i = 0; i < LIVES; i++) {
-    const inp = document.getElementById(`wi${i}`);
-    if (!inp || !isValidWord(inp.value)) { showToast('すべての語を正しく入力してください'); return; }
-    words.push(inp.value);
+function showPreview(norm, valid) {
+  const box = document.getElementById('previewBox');
+  const empty = document.getElementById('previewEmpty');
+  if (!norm) {
+    box.querySelectorAll('.prev-tile').forEach(e => e.remove());
+    if (empty) empty.style.display = '';
+    return;
   }
+  if (empty) empty.style.display = 'none';
+  box.querySelectorAll('.prev-tile').forEach(e => e.remove());
+  [...norm].forEach(ch => {
+    const span = document.createElement('span');
+    span.className = 'prev-tile';
+    span.style.borderColor = valid ? '' : 'var(--ng)';
+    span.style.color       = valid ? '' : 'var(--ng)';
+    span.style.background  = valid ? '' : 'rgba(239,68,68,.08)';
+    span.textContent = ch;
+    box.appendChild(span);
+  });
+}
+
+async function submitWord() {
+  const raw  = document.getElementById('wordInput').value;
+  if (!isValidInput(raw)) return;
+  const norm = normalize(raw);
+  if (!isValidNorm(norm)) return;
+
   const btn = document.getElementById('doneBtn');
   btn.disabled = true; btn.textContent = '送信中…';
-
   try {
-    await roomRef.child(`words/${myIdx}`).set(words);
+    await roomRef.child(`words/${myIdx}`).set(norm);
     await roomRef.child(`writingDone/${myIdx}`).set(true);
 
-    // Check if all done → transition to attacking
     const snap = await roomRef.once('value');
     const d = snap.val() || {};
     const pCnt = Object.keys(d.players || {}).length;
     const dCnt = Object.keys(d.writingDone || {}).length;
     if (dCnt >= pCnt) {
-      db.ref(`aiu-battle/${roomCode}/phase`).transaction(cur => cur === 'writing' ? 'attacking' : undefined);
+      db.ref(`aiu-battle/${roomCode}/phase`).transaction(cur =>
+        cur === 'writing' ? 'attacking' : undefined
+      );
     }
   } catch (e) {
     showToast('送信に失敗: ' + (e.message || e));
-    btn.disabled = false; btn.textContent = '完了（3語入力後に押してください）';
+    btn.disabled = false; btn.textContent = '決定';
   }
 }
 
@@ -579,60 +687,65 @@ function renderAttacking(d) {
   hideAll();
   document.getElementById('attackScreen').classList.remove('hidden');
 
-  const players  = d.players  || {};
-  const revealed = d.revealed || {};
-  const attacked = d.attacked || {};
-  const turn     = d.turn     ?? 0;
-  const pCnt     = Object.keys(players).length;
-  const isMyTurn = turn === myIdx && d.winner == null;
+  const players     = d.players     || {};
+  const revealed    = d.revealed    || {};
+  const attacked    = d.attacked    || {};
+  const words       = d.words       || {};
+  const turn        = d.turn        ?? 0;
+  const attackPhase = d.attackPhase ?? 1;
+  const pCnt        = Object.keys(players).length;
+  const isMyTurn    = turn === myIdx && d.winner == null;
 
   // Status bar
   const sb = document.getElementById('statusBar');
   if (d.winner != null) {
-    sb.textContent = `🏆 ${(players[d.winner]||{}).name||`P${d.winner+1}`} の勝ち！`;
+    const wName = (players[d.winner] || {}).name || `P${d.winner+1}`;
+    sb.innerHTML = `<span>🏆 ${wName} の勝ち！</span>`;
     sb.className = 'status-bar';
+  } else if (isMyTurn) {
+    const chainMsg = attackPhase === 2 ? '最後の1回！' : '文字を選んで攻撃！';
+    const phaseStr = attackPhase === 2 ? '（2回目 / 最後）' : '（1回目）';
+    sb.innerHTML = `<span>あなたのターン ${phaseStr}</span><span class="status-sub">${chainMsg}</span>`;
+    sb.className = 'status-bar myturn';
   } else {
-    sb.textContent = isMyTurn
-      ? 'あなたのターン — 文字をタップして攻撃！'
-      : `${(players[turn]||{}).name||`P${turn+1}`} のターン…`;
-    sb.className = 'status-bar' + (isMyTurn ? ' myturn' : '');
+    const tName = (players[turn] || {}).name || `P${turn+1}`;
+    const phaseStr = attackPhase === 2 ? '（2回目）' : '（1回目）';
+    sb.innerHTML = `<span>${tName} のターン ${phaseStr}</span>`;
+    sb.className = 'status-bar';
   }
 
   // Player word cards
   const pcEl = document.getElementById('pcards');
   pcEl.innerHTML = '';
   for (let i = 0; i < pCnt; i++) {
-    const p     = players[i] || {};
-    const revArr = getRevArr(revealed, i);
-    const words  = getWords(d.words, i);
-    const elim   = isElim(revArr);
+    const p    = players[i] || {};
+    const word = words[i]  || '';
+    const revArr = getRevArr(revealed, i, word.length);
+    const elim   = word && revArr.every(Boolean);
     const isMe   = i === myIdx;
+    const isAT   = i === turn && !elim;
 
     const card = document.createElement('div');
-    card.className = `pcard ${isMe ? 'me' : ''} ${elim ? 'elim' : ''}`;
+    card.className = `pcard ${isMe ? 'me' : ''} ${elim ? 'elim' : ''} ${isAT ? 'active-turn' : ''}`;
 
-    const lives = Array.from({length: LIVES}, (_, j) =>
-      `<div class="life-dot ${revArr[j] ? 'lost' : ''}"></div>`
-    ).join('');
-
-    const chips = words.map((w, j) => {
-      if (revArr[j]) {
-        const justRev = justRevealedSet.has(`${i}_${j}`);
-        return `<span class="wchip revealed ${justRev ? 'just-revealed' : ''}">${w}</span>`;
-      }
+    const tiles = [...word].map((ch, j) => {
+      const revealed_ = revArr[j];
+      const isNew = justRevealedSet.has(`${i}_${j}`);
       if (isMe) {
-        return `<span class="wchip mine">${w}</span>`;
+        return `<span class="tile tile-m">${ch}</span>`;
       }
-      // Hidden: show blanks equal to word length
-      return `<span class="wchip">${'＿'.repeat(w.length)}</span>`;
+      if (revealed_) {
+        return `<span class="tile tile-r ${isNew ? 'tile-new' : ''}">${ch}</span>`;
+      }
+      return `<span class="tile tile-h">□</span>`;
     }).join('');
 
     card.innerHTML = `
-      <div class="pcard-header">
+      <div class="pc-header">
         <span class="pc-name">${p.name||`P${i+1}`}${isMe?' (あなた)':''}${elim?' 💀':''}</span>
-        <div class="pc-lives">${lives}</div>
+        <span style="font-size:12px;color:var(--muted)">${word.length}文字</span>
       </div>
-      <div class="pcard-words">${chips}</div>`;
+      <div class="word-tiles">${tiles || '<span style="color:var(--muted);font-size:12px">—</span>'}</div>`;
     pcEl.appendChild(card);
   }
 
@@ -644,13 +757,20 @@ function renderAttacking(d) {
     if (!ch) {
       btn.className = 'bc spacer';
     } else {
-      const isAttacked = !!attacked[ch];
-      btn.className = `bc ${isAttacked ? 'attacked' : ''} ${isMyTurn && !isAttacked ? 'active' : ''}`;
+      const att = !!attacked[ch];
+      btn.className = `bc ${att ? 'attacked' : ''} ${isMyTurn && !att ? 'can-attack' : ''}`;
       btn.textContent = ch;
-      if (isMyTurn && !isAttacked) btn.onclick = () => attack(ch);
+      if (isMyTurn && !att) btn.onclick = () => attack(ch);
     }
     boardEl.appendChild(btn);
   });
+  // ー as full-width button at bottom
+  const longBtn = document.createElement('button');
+  const attLong = !!attacked['ー'];
+  longBtn.className = `bc longvowel ${attLong ? 'attacked' : ''} ${isMyTurn && !attLong ? 'can-attack' : ''}`;
+  longBtn.textContent = 'ー （長音）';
+  if (isMyTurn && !attLong) longBtn.onclick = () => attack('ー');
+  boardEl.appendChild(longBtn);
 }
 
 async function attack(char) {
@@ -658,73 +778,81 @@ async function attack(char) {
   const d = currentData;
   if (d.turn !== myIdx || d.winner != null) return;
 
-  const players  = d.players  || {};
-  const revealed = d.revealed || {};
-  const words    = d.words    || {};
-  const pCnt     = Object.keys(players).length;
+  const players     = d.players     || {};
+  const revealed    = d.revealed    || {};
+  const words       = d.words       || {};
+  const attackPhase = d.attackPhase ?? 1;
+  const pCnt        = Object.keys(players).length;
 
-  // Find all newly revealed cards
-  const newRevArr = {};
+  // Build new revealed state after this attack
+  const newRev = {};
   for (let i = 0; i < pCnt; i++) {
-    newRevArr[i] = getRevArr(revealed, i).slice();
+    const word = words[i] || '';
+    newRev[i]  = getRevArr(revealed, i, word.length).slice();
   }
 
   justRevealedSet.clear();
-  let anyReveal = false;
+  let anyHit = false;
 
   for (let i = 0; i < pCnt; i++) {
-    const ws = getWords(words, i);
-    for (let j = 0; j < LIVES; j++) {
-      if (!newRevArr[i][j] && ws[j] && ws[j].includes(char)) {
-        newRevArr[i][j] = true;
+    if (isElim(revealed, words, i)) continue;
+    const word = words[i] || '';
+    [...word].forEach((ch, j) => {
+      if (ch === char && !newRev[i][j]) {
+        newRev[i][j] = true;
         justRevealedSet.add(`${i}_${j}`);
-        anyReveal = true;
+        anyHit = true;
       }
-    }
+    });
   }
 
-  // Who is still alive after this attack?
+  // Who's alive after this attack?
   const alive = [];
   for (let i = 0; i < pCnt; i++) {
-    if (!isElim(newRevArr[i])) alive.push(i);
+    const word = words[i] || '';
+    if (word && !newRev[i].every(Boolean)) alive.push(i);
   }
 
   const updates = { [`attacked/${char}`]: true };
-
-  // Write new revealed state
   for (let i = 0; i < pCnt; i++) {
-    for (let j = 0; j < LIVES; j++) {
-      updates[`revealed/${i}/${j}`] = newRevArr[i][j];
+    const word = words[i] || '';
+    for (let j = 0; j < word.length; j++) {
+      updates[`revealed/${i}/${j}`] = newRev[i][j];
     }
   }
 
   if (alive.length <= 1) {
-    // Game over
-    updates.winner = alive.length === 1 ? alive[0] : -1;
+    updates.winner = alive.length === 1 ? alive[0] : myIdx;
     updates.phase  = 'gameEnd';
-  } else if (!anyReveal) {
-    // Miss → pass turn (skip eliminated players)
-    let next = myIdx;
+  } else if (anyHit && attackPhase === 1) {
+    // Chain: grant 2nd attack
+    updates.attackPhase = 2;
+  } else {
+    // End turn: miss, OR 2nd attack (hit or miss)
+    updates.attackPhase = 1;
+    let next = d.turn;
     for (let k = 1; k <= pCnt; k++) {
-      next = (myIdx + k) % pCnt;
-      if (!isElim(newRevArr[next])) break;
+      const cand = (d.turn + k) % pCnt;
+      if (!isElim({...revealed, ...Object.fromEntries(Object.keys(newRev).map(i => [i, newRev[i]]))}, words, cand)) {
+        next = cand; break;
+      }
     }
     updates.turn = next;
   }
-  // anyReveal + alive > 1 → chain attack (turn unchanged)
 
   await roomRef.update(updates);
 
-  if (anyReveal) {
-    const names = [];
+  if (anyHit) {
+    const hits = [];
     justRevealedSet.forEach(key => {
       const [pi, wi] = key.split('_').map(Number);
-      names.push(`${(players[pi]||{}).name||`P${pi+1}`}「${getWords(words, pi)[wi]||'?'}」`);
+      const pname = (players[pi]||{}).name || `P${pi+1}`;
+      hits.push(`${pname}「${(words[pi]||'')[wi]}」`);
     });
-    const chain = alive.length > 1 && updates.turn === undefined;
-    showToast(names.join('・') + ' が公開！' + (chain ? ' もう一度攻撃！' : ''));
+    const chainMsg = anyHit && attackPhase === 1 && alive.length > 1 ? ' もう1回攻撃！' : '';
+    showToast('命中！ ' + hits.join('・') + chainMsg);
   } else {
-    showToast(`「${char}」はどこにも使われていない！ターン交代`);
+    showToast(`「${char}」はハズレ — 次のプレイヤーへ`);
   }
 }
 
@@ -739,27 +867,35 @@ function renderGameEnd(d) {
   const pCnt     = Object.keys(players).length;
   const winner   = d.winner;
 
-  // Sort: winner first, then by lives remaining
+  document.getElementById('endTitle').textContent =
+    winner != null ? `${(players[winner]||{}).name||`P${winner+1}`} の勝ち！` : '引き分け！';
+
   const order = Array.from({length: pCnt}, (_, i) => {
-    const revArr = getRevArr(revealed, i);
-    return { idx: i, livesLeft: revArr.filter(v=>!v).length };
+    const word    = words[i] || '';
+    const revArr  = getRevArr(revealed, i, word.length);
+    const hidden  = revArr.filter(v => !v).length;
+    return { idx: i, hidden };
   }).sort((a,b) => {
     if (a.idx === winner) return -1;
     if (b.idx === winner) return  1;
-    return b.livesLeft - a.livesLeft;
+    return b.hidden - a.hidden;
   });
 
   const medals = ['🏆','🥈','🥉','4位','5位'];
   document.getElementById('podium').innerHTML = order.map((p, rank) => {
-    const name  = (players[p.idx]||{}).name || `P${p.idx+1}`;
-    const ws    = getWords(words, p.idx);
-    const revArr = getRevArr(revealed, p.idx);
-    const wordStr = ws.map((w, j) => revArr[j] ? `<del>${w}</del>` : `<strong>${w}</strong>`).join(' ');
+    const name   = (players[p.idx]||{}).name || `P${p.idx+1}`;
+    const word   = words[p.idx]  || '—';
+    const revArr = getRevArr(revealed, p.idx, word.length);
+    const tiles  = [...word].map((ch, j) =>
+      `<span class="tile ${revArr[j] ? 'tile-r' : 'tile-m'}" style="width:28px;height:28px;font-size:14px">${ch}</span>`
+    ).join('');
+
     return `<div class="pdi ${rank===0?'rank1':''}">
       <div class="pd-medal">${medals[rank]}</div>
-      <div>
+      <div class="pd-info">
         <div class="pd-name">${name}${p.idx===myIdx?' (あなた)':''}</div>
-        <div class="pd-score" style="font-size:12px">${wordStr}</div>
+        <div class="pd-word">登録形：${word}</div>
+        <div class="pd-tiles">${tiles}</div>
       </div>
     </div>`;
   }).join('');
@@ -768,28 +904,26 @@ function renderGameEnd(d) {
 function requestRematch() {
   if (!roomRef) return;
   roomRef.child(`rematch/${myIdx}`).set(true);
-  showToast('リマッチを要求しました…');
-  roomRef.child('rematch').on('value', snap => {
+  showToast('リマッチを要求中…');
+  roomRef.child('rematch').once('value', snap => {
     const rm  = snap.val() || {};
     const d   = currentData;
     if (!d) return;
     const cnt = Object.keys(d.players || {}).length;
-    if (Object.keys(rm).length >= cnt) {
-      roomRef.child('rematch').off();
-      if (isHost) {
-        const theme = shuffle(THEMES)[0];
-        roomRef.update({
-          phase:      'writing',
-          theme,
-          words:      null,
-          writingDone: null,
-          revealed:   null,
-          attacked:   null,
-          turn:       0,
-          winner:     null,
-          rematch:    null,
-        });
-      }
+    if (Object.keys(rm).length >= cnt && isHost) {
+      const theme = shuffle(TOPICS)[0];
+      roomRef.update({
+        phase:       'writing',
+        theme,
+        words:       null,
+        writingDone: null,
+        revealed:    null,
+        attacked:    null,
+        turn:        0,
+        attackPhase: 1,
+        winner:      null,
+        rematch:     null,
+      });
     }
   });
 }
@@ -805,7 +939,7 @@ function showToast(msg) {
   const el = document.getElementById('toast');
   el.textContent = msg; el.classList.add('show');
   clearTimeout(toastTmr);
-  toastTmr = setTimeout(() => el.classList.remove('show'), 3000);
+  toastTmr = setTimeout(() => el.classList.remove('show'), 3500);
 }
 </script>
 <script>if('serviceWorker'in navigator)navigator.serviceWorker.register('/friend-games/service-worker.js');</script>
