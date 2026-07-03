@@ -1,4 +1,4 @@
-const CACHE = 'fg-v1';
+const CACHE = 'fg-v2';
 const PRECACHE = [
   '/friend-games/',
   '/friend-games/index.html',

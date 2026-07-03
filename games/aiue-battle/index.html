@@ -48,94 +48,94 @@
     .copy-btn.copied { border-color: var(--ok); color: var(--ok); }
     .or-div { display: flex; align-items: center; gap: var(--sp-sm); color: var(--muted); font-size: 13px; }
     .or-div::before,.or-div::after { content: ''; flex: 1; height: 1px; background: var(--hairline); }
-    .err  { font-size: 13px; color: var(--ng); min-height: 18px; margin-top: 4px; }
+    .err { font-size: 13px; color: var(--ng); min-height: 18px; margin-top: 4px; }
 
-    /* ── Player list ── */
+    /* ── Player list (lobby) ── */
     .plist { display: flex; flex-direction: column; gap: 6px; margin: var(--sp-sm) 0; }
     .prow { display: flex; align-items: center; gap: var(--sp-sm); padding: var(--sp-xs) var(--sp-sm);
             background: var(--surface-raised); border-radius: var(--r-sm); }
-    .pchar { width: 28px; height: 28px; border-radius: 50%; color: #fff; font-size: 14px; font-weight: 700;
-             display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .pname { font-size: 14px; font-weight: 500; color: var(--ink); flex: 1; }
     .phst  { font-size: 11px; color: var(--rausch); font-weight: 600; }
-
-    /* ── Waiting hint ── */
     .wh { font-size: 12px; color: var(--muted); text-align: center; margin-top: var(--sp-sm); }
     .dots::after { content: ''; animation: dots 1.2s steps(4,end) infinite; }
     @keyframes dots { 0%,100%{content:''} 25%{content:'.'} 50%{content:'..'} 75%{content:'...'} }
 
-    /* ── Timer ── */
-    .timer-wrap { text-align: center; }
-    .timer-num { font-size: 72px; font-weight: 700; line-height: 1; transition: color .3s; color: var(--ok); }
-    .timer-num.mid  { color: var(--ink); }
-    .timer-num.warn { color: var(--ng); }
-    .timer-lbl { font-size: 11px; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); }
-
-    /* ── Theme display ── */
+    /* ── Theme card ── */
     .theme-card { background: var(--surface-card); border: 1px solid var(--hairline);
                   border-radius: var(--r-md); padding: var(--sp-base); text-align: center; }
-    .theme-lbl  { font-size: 11px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); }
-    .theme-txt  { font-size: 30px; font-weight: 700; color: var(--ink); margin-top: 4px; }
+    .theme-lbl { font-size: 11px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+                 color: var(--muted); }
+    .theme-txt { font-size: 30px; font-weight: 700; color: var(--ink); margin-top: 4px; }
 
-    /* ── Character prompt ── */
-    .char-wrap { text-align: center; }
-    .char-big  { font-size: 80px; font-weight: 700; color: var(--rausch); line-height: 1; }
-    .char-hint { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    /* ── Writing phase ── */
+    .word-inputs { display: flex; flex-direction: column; gap: var(--sp-sm); }
+    .word-row { display: flex; align-items: center; gap: var(--sp-sm); }
+    .word-label { font-size: 13px; font-weight: 600; color: var(--muted); width: 44px; flex-shrink: 0; }
+    .word-inp { flex: 1; background: var(--surface); border: 1px solid var(--border);
+                border-radius: var(--r-sm); padding: var(--sp-sm) var(--sp-base); color: var(--ink);
+                font-family: var(--font); font-size: 18px; outline: none; min-height: 44px; }
+    .word-inp:focus { border-color: var(--rausch); }
+    .word-inp.valid { border-color: var(--ok); }
+    .word-inp.invalid { border-color: var(--ng); }
+    .word-len { font-size: 12px; color: var(--muted); width: 30px; text-align: right; flex-shrink: 0; }
+    .write-hint { font-size: 12px; color: var(--muted); margin-top: var(--sp-xs); }
+    .write-status { display: flex; gap: var(--sp-sm); flex-wrap: wrap; margin-top: var(--sp-sm); }
+    .ws-dot { font-size: 12px; color: var(--muted); }
+    .ws-dot.done { color: var(--ok); }
 
-    /* ── Answer area ── */
-    .ans-area { background: var(--surface-card); border: 1px solid var(--border);
-                border-radius: var(--r-md); padding: var(--sp-base); }
-    .ans-inp { width: 100%; background: var(--surface); border: 1px solid var(--border);
-               border-radius: var(--r-sm); padding: var(--sp-sm) var(--sp-base); color: var(--ink);
-               font-family: var(--font); font-size: 22px; outline: none; min-height: 52px;
-               margin-bottom: var(--sp-sm); }
-    .ans-inp:focus { border-color: var(--rausch); }
-    .ans-inp:disabled { opacity: .5; }
-    .sub-dots { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
-    .sub-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); flex-shrink:0; }
-    .sub-dot.done { background: var(--ok); }
-    .sub-lbl { font-size: 11px; color: var(--muted); }
+    /* ── Status bar ── */
+    .status-bar { background: var(--surface-card); border: 1px solid var(--hairline);
+                  border-radius: var(--r-sm); padding: var(--sp-sm) var(--sp-base);
+                  font-size: 13px; color: var(--body-text); text-align: center;
+                  min-height: 44px; display: flex; align-items: center; justify-content: center; }
+    .status-bar.myturn { border-color: var(--rausch); color: var(--rausch);
+                         background: rgba(255,56,92,.06); font-weight: 600; }
 
-    /* ── Reveal cards ── */
-    .sec-label { font-size: 11px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
-                 color: var(--muted); text-align: center; }
-    .rev-theme { font-size: 22px; font-weight: 700; color: var(--ink); text-align: center; margin-top: 4px; }
-    .acards { display: flex; flex-direction: column; gap: var(--sp-sm); }
-    .acard { background: var(--surface-card); border: 1px solid var(--hairline);
-             border-radius: var(--r-md); padding: var(--sp-base);
-             display: flex; align-items: center; gap: var(--sp-sm); }
-    .acard.me   { border-color: var(--rausch); background: rgba(255,56,92,.04); }
-    .acard.gold { border-color: #f59e0b; }
-    .ac-rank { font-size: 22px; width: 30px; text-align: center; flex-shrink: 0; }
-    .ac-char { width: 36px; height: 36px; border-radius: 50%; color: #fff; font-size: 16px; font-weight: 700;
-               display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .ac-info { flex: 1; min-width: 0; }
-    .ac-name  { font-size: 12px; color: var(--muted); }
-    .ac-ans   { font-size: 18px; font-weight: 600; color: var(--ink); }
-    .ac-ans.none { color: var(--muted); font-style: italic; font-size: 14px; }
-    .ac-pts   { font-size: 18px; font-weight: 700; color: var(--ok); white-space: nowrap; }
-    .ac-pts.zero { color: var(--muted); font-size: 14px; }
+    /* ── Player word cards ── */
+    .pcards { display: flex; flex-direction: column; gap: 8px; }
+    .pcard { background: var(--surface-card); border: 1px solid var(--hairline);
+             border-radius: var(--r-sm); padding: 10px var(--sp-base); }
+    .pcard.me   { border-color: var(--rausch); background: rgba(255,56,92,.03); }
+    .pcard.elim { opacity: .45; }
+    .pcard-header { display: flex; align-items: center; gap: var(--sp-sm); margin-bottom: 6px; }
+    .pc-name { font-size: 13px; font-weight: 600; color: var(--ink); flex: 1; }
+    .pc-lives { display: flex; gap: 3px; }
+    .life-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--rausch); }
+    .life-dot.lost { background: var(--surface-raised); border: 1px solid var(--border); }
+    .pcard-words { display: flex; flex-wrap: wrap; gap: 6px; }
+    .wchip { font-size: 13px; padding: 4px 10px; border-radius: 20px;
+             border: 1px solid var(--border); background: var(--surface);
+             color: var(--muted); letter-spacing: .1em; }
+    .wchip.mine    { background: var(--rausch-dim); border-color: var(--rausch); color: var(--rausch); font-weight: 600; }
+    .wchip.revealed { background: rgba(34,197,94,.12); border-color: var(--ok); color: var(--ok); }
+    .wchip.just-revealed { animation: pop .4s ease; }
+    @keyframes pop { 0%{transform:scale(1)} 50%{transform:scale(1.12)} 100%{transform:scale(1)} }
 
-    /* ── Score summary ── */
-    .sbox { background: var(--surface-card); border: 1px solid var(--hairline);
-            border-radius: var(--r-md); padding: var(--sp-base); }
-    .sbox-title { font-size: 11px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
-                  color: var(--muted); margin-bottom: var(--sp-sm); }
-    .srow { display: flex; align-items: center; gap: var(--sp-sm); margin-bottom: 6px; }
-    .sname { flex: 1; font-size: 14px; font-weight: 500; color: var(--ink); }
-    .sbar-wrap { width: 72px; height: 6px; background: var(--surface-raised); border-radius: 3px; overflow: hidden; }
-    .sbar { height: 100%; background: var(--rausch); border-radius: 3px; transition: width .6s ease; }
-    .sval { font-size: 14px; font-weight: 700; color: var(--ink); width: 48px; text-align: right; }
+    /* ── Hiragana board ── */
+    .board-wrap { background: var(--surface-card); border: 1px solid var(--hairline);
+                  border-radius: var(--r-md); padding: var(--sp-sm); }
+    .board-lbl { font-size: 11px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+                 color: var(--muted); text-align: center; margin-bottom: var(--sp-sm); }
+    .board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+    .bc { height: 44px; border-radius: 8px; border: 1px solid var(--border);
+          background: var(--surface); font-size: 18px; font-weight: 500; color: var(--ink);
+          display: flex; align-items: center; justify-content: center; cursor: pointer;
+          transition: background .1s, border-color .1s; font-family: var(--font);
+          -webkit-tap-highlight-color: transparent; }
+    .bc:empty, .bc.spacer { background: transparent; border-color: transparent; cursor: default; pointer-events: none; }
+    .bc.attacked { opacity: .2; text-decoration: line-through; cursor: not-allowed; background: transparent; }
+    .bc.active:not(.attacked):active { background: var(--rausch-dim); border-color: var(--rausch); transform: scale(.93); }
+    .bc.active:not(.attacked) { border-color: var(--rausch); background: rgba(255,56,92,.06); cursor: pointer; }
 
-    /* ── Podium ── */
+    /* ── Game end ── */
     .podium { display: flex; flex-direction: column; gap: var(--sp-sm); }
     .pdi { background: var(--surface-card); border: 1px solid var(--hairline);
            border-radius: var(--r-md); padding: var(--sp-base);
            display: flex; align-items: center; gap: var(--sp-md); }
     .pdi.rank1 { border-color: #f59e0b; background: rgba(245,158,11,.06); }
-    .pd-medal { font-size: 30px; flex-shrink: 0; }
+    .pd-medal { font-size: 28px; flex-shrink: 0; }
     .pd-name  { font-size: 16px; font-weight: 600; color: var(--ink); flex: 1; }
-    .pd-score { font-size: 18px; font-weight: 700; color: var(--ok); }
+    .pd-score { font-size: 14px; color: var(--muted); }
 
     /* ── Misc ── */
     .btn-row { display: flex; gap: var(--sp-sm); }
@@ -145,6 +145,8 @@
     .gbtn.primary { border-color: var(--rausch); color: var(--rausch); }
     .gbtn.primary:hover { background: var(--rausch-dim); }
     .gbtn:disabled { opacity: .4; cursor: not-allowed; }
+    .sec-label { font-size: 11px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+                 color: var(--muted); }
     .toast { position: fixed; bottom: max(24px, env(safe-area-inset-bottom,24px));
              left: 50%; transform: translateX(-50%); background: var(--surface-raised);
              color: var(--ink); border: 1px solid var(--border); padding: 9px 18px;
@@ -158,7 +160,7 @@
 <div class="page">
   <a class="back-link" href="../../index.html">‹ ロビーに戻る</a>
   <h1 class="page-title">あいうえバトル</h1>
-  <p class="page-sub">AIUEO BATTLE — ワードゲーム</p>
+  <p class="page-sub">AIUEO BATTLE — 言葉当て推理</p>
 
   <!-- ══ LOBBY ══ -->
   <div id="lobby">
@@ -192,7 +194,7 @@
     </div>
   </div>
 
-  <!-- ══ WAIT (joiner) ══ -->
+  <!-- ══ WAIT (joiner before start) ══ -->
   <div id="waitScreen" class="hidden">
     <div class="lcard">
       <h2>参加済み — ホストの開始を待っています</h2>
@@ -201,44 +203,37 @@
     </div>
   </div>
 
-  <!-- ══ ANSWERING ══ -->
-  <div id="answerScreen" class="hidden">
-    <div class="timer-wrap">
-      <div class="timer-num ok" id="timerNum">45</div>
-      <div class="timer-lbl">秒</div>
-    </div>
-
+  <!-- ══ WRITING PHASE ══ -->
+  <div id="writeScreen" class="hidden">
     <div class="theme-card">
-      <div class="theme-lbl">テーマ</div>
-      <div class="theme-txt" id="themeText">—</div>
+      <div class="theme-lbl">お題</div>
+      <div class="theme-txt" id="writeTheme">—</div>
     </div>
 
-    <div class="char-wrap">
-      <div class="char-big" id="myChar">あ</div>
-      <div class="char-hint">「<span id="myCharSpan">あ</span>」から始まるワードを入力してください</div>
+    <div class="lcard">
+      <h2>言葉を3つ入力してください</h2>
+      <div class="word-inputs" id="wordInputs">
+        <!-- 3 rows inserted by JS -->
+      </div>
+      <p class="write-hint">・ひらがなのみ・2〜10文字・お題に沿った言葉</p>
+      <div class="write-status" id="writeStatus"></div>
     </div>
 
-    <div class="ans-area">
-      <input class="ans-inp" id="ansInp" type="text" maxlength="20" placeholder="ここに入力…"
-        autocorrect="off" autocomplete="off">
-      <button class="btn-primary" id="submitBtn" style="width:100%" onclick="submitAnswer()">送信</button>
-      <div class="sub-dots" id="subDots"></div>
-    </div>
+    <button class="btn-primary" id="doneBtn" style="width:100%" disabled onclick="doneWriting()">
+      完了（3語入力後に押してください）
+    </button>
   </div>
 
-  <!-- ══ REVEAL ══ -->
-  <div id="revealScreen" class="hidden">
-    <div>
-      <div class="sec-label" id="revRoundLbl">ラウンド 1 / 5</div>
-      <div class="rev-theme" id="revTheme">テーマ</div>
+  <!-- ══ ATTACKING PHASE ══ -->
+  <div id="attackScreen" class="hidden">
+    <div class="status-bar" id="statusBar">読み込み中…</div>
+
+    <div class="pcards" id="pcards"></div>
+
+    <div class="board-wrap">
+      <div class="board-lbl">文字ボード — タップして攻撃</div>
+      <div class="board" id="board"></div>
     </div>
-    <div class="acards" id="acards"></div>
-    <div class="sbox">
-      <div class="sbox-title">累計スコア</div>
-      <div id="scoreList"></div>
-    </div>
-    <button class="btn-primary hidden" id="nextBtn" style="width:100%" onclick="hostAdvance()">次のラウンドへ →</button>
-    <p class="wh hidden" id="nextHint">次のラウンドまで <span id="nextCntEl">10</span> 秒<span class="dots"></span></p>
   </div>
 
   <!-- ══ GAME END ══ -->
@@ -248,7 +243,7 @@
       <div class="theme-txt" style="font-size:20px">お疲れ様でした</div>
     </div>
     <div class="podium" id="podium"></div>
-    <div class="btn-row">
+    <div class="btn-row" style="margin-top:var(--sp-sm)">
       <button class="gbtn primary" onclick="requestRematch()">もう一度</button>
       <a class="gbtn" style="display:flex;align-items:center;justify-content:center;text-decoration:none"
          href="../../index.html">ロビーへ</a>
@@ -258,7 +253,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ── Firebase ────────────────────────────────────────────────
+// ── Firebase ─────────────────────────────────────────────
 const FB = {
   apiKey: "AIzaSyAkR_J-GvubFY3EzrQMQpaB6oVTOShv0sg",
   authDomain: "friend-games-c2938.firebaseapp.com",
@@ -271,26 +266,42 @@ const FB = {
 firebase.initializeApp(FB);
 const db = firebase.database();
 
-// ── Constants ────────────────────────────────────────────────
-const CHARS      = ['あ', 'い', 'う', 'え', 'お'];
-const CHAR_COLORS= ['#ff385c', '#0ea5e9', '#22c55e', '#f59e0b', '#a855f7'];
-const ROUND_N    = 5;
-const ANS_SEC    = 45;
+// ── Constants ─────────────────────────────────────────────
+const LIVES = 3;
+const WORD_MIN = 2, WORD_MAX = 10;
+
+// Hiragana board ('' = spacer cell)
+const BOARD_ROWS = [
+  ['あ','い','う','え','お'],
+  ['か','き','く','け','こ'],
+  ['さ','し','す','せ','そ'],
+  ['た','ち','つ','て','と'],
+  ['な','に','ぬ','ね','の'],
+  ['は','ひ','ふ','へ','ほ'],
+  ['ま','み','む','め','も'],
+  ['や','','ゆ','','よ'],
+  ['ら','り','る','れ','ろ'],
+  ['わ','','を','','ん'],
+  ['っ','ゃ','ゅ','ょ',''],
+];
+const ALL_CHARS = BOARD_ROWS.flat().filter(Boolean);
+
 const THEMES = [
   '動物', '食べ物', '国の名前', '日本の都道府県', 'スポーツ',
   '映画・ドラマ', '歌手・アーティスト', '色の名前', '乗り物', '職業',
   '楽器', '花・植物', '魚・海の生き物', '野菜', '果物',
-  '飲み物', '有名人', '料理の名前', '体の部位', 'ゲームのタイトル',
-  'キャラクターの名前', '場所・建物', 'ファッション・服', '学校の科目', '家具・家電',
+  '飲み物', '有名人', '料理の名前', '体の部位', '学校の科目',
+  '家具・家電', '服・ファッション', '場所・建物', 'キャラクター名', '季節・天気',
 ];
 
-// ── State ────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────
 let myIdx = 0, isHost = true, phase = 'lobby';
 let roomCode, roomRef, myCreateCode;
-let timerIv = null, nextIv = null;
-let currentData = null, lastSavedRound = -1;
+let currentData = null;
+// Track just-revealed chips for animation
+let justRevealedSet = new Set();
 
-// ── Helpers ──────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────
 function rndCode() {
   const ch = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let s = '';
@@ -309,9 +320,26 @@ function getName() {
   const v = (document.getElementById('nameInp').value || '').trim();
   return v || `プレイヤー${myIdx + 1}`;
 }
-function charColor(idx) { return CHAR_COLORS[idx % CHAR_COLORS.length]; }
+function isValidWord(w) {
+  return /^[ぁ-ん]{2,10}$/.test(w);
+}
+// Get revealed array safely (Firebase may return object or array)
+function getRevArr(revealed, pidx) {
+  const r = (revealed || {})[pidx];
+  if (!r) return Array(LIVES).fill(false);
+  if (Array.isArray(r)) return r;
+  return Array.from({length: LIVES}, (_, i) => !!r[i]);
+}
+// Get words array safely (Firebase numeric keys may return object)
+function getWords(words, pidx) {
+  const w = (words || {})[pidx];
+  if (!w) return [];
+  if (Array.isArray(w)) return w;
+  return Object.keys(w).sort((a,b) => +a - +b).map(k => w[k]);
+}
+function isElim(revArr) { return revArr.every(Boolean); }
 
-// ── Lobby init ───────────────────────────────────────────────
+// ── Lobby init ────────────────────────────────────────────
 (function initLobby() {
   myCreateCode = rndCode();
   myIdx   = 0;
@@ -320,8 +348,6 @@ function charColor(idx) { return CHAR_COLORS[idx % CHAR_COLORS.length]; }
   roomRef  = db.ref(`aiu-battle/${roomCode}`);
 
   document.getElementById('createCode').textContent = roomCode;
-
-  // Create room stub so joiners can find it
   roomRef.child('players/0').set({ name: '—', score: 0 });
   roomRef.onDisconnect().remove();
 
@@ -331,10 +357,9 @@ function charColor(idx) { return CHAR_COLORS[idx % CHAR_COLORS.length]; }
     renderWaitList(ps, 'waitList');
     document.getElementById('startBtn').disabled = Object.keys(ps).length < 2;
   });
-
   roomRef.child('phase').on('value', snap => {
-    if (snap.val() === 'answering' && phase === 'lobby') {
-      phase = 'answering';
+    if (snap.val() === 'writing' && phase === 'lobby') {
+      phase = 'writing';
       startGameListeners();
     }
   });
@@ -343,33 +368,29 @@ function charColor(idx) { return CHAR_COLORS[idx % CHAR_COLORS.length]; }
 function renderWaitList(players, elId) {
   const el = document.getElementById(elId);
   if (!el) return;
-  const entries = Object.entries(players).sort((a,b) => +a[0] - +b[0]);
-  el.innerHTML = entries.map(([idx, p]) => {
-    const i = +idx;
-    const bg = charColor(i);
-    return `<div class="prow">
-      <div class="pchar" style="background:${bg}">${CHARS[i % CHARS.length]}</div>
-      <span class="pname">${p.name || `プレイヤー${i+1}`}${i === myIdx ? ' （あなた）' : ''}</span>
-      ${i === 0 ? '<span class="phst">ホスト</span>' : ''}
-    </div>`;
-  }).join('');
+  el.innerHTML = Object.entries(players)
+    .sort((a,b) => +a[0] - +b[0])
+    .map(([i, p]) =>
+      `<div class="prow">
+        <span class="pname">${p.name || `プレイヤー${+i+1}`}${+i === myIdx ? ' （あなた）' : ''}</span>
+        ${+i === 0 ? '<span class="phst">ホスト</span>' : ''}
+      </div>`
+    ).join('');
 }
 
-// ── Copy code ─────────────────────────────────────────────────
 function copyCode() {
-  navigator.clipboard.writeText(myCreateCode).catch(() => {});
+  navigator.clipboard.writeText(myCreateCode).catch(()=>{});
   const btn = document.getElementById('copyBtn');
   btn.textContent = 'コピーしました！'; btn.classList.add('copied');
-  setTimeout(() => { btn.textContent = 'コードをコピー'; btn.classList.remove('copied'); }, 2000);
+  setTimeout(() => { btn.textContent='コードをコピー'; btn.classList.remove('copied'); }, 2000);
 }
 
-// ── Join room ─────────────────────────────────────────────────
+// ── Join room ─────────────────────────────────────────────
 async function joinRoom() {
-  const code = document.getElementById('codeInp').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-  const errEl = document.getElementById('joinErr');
-  const btn = document.querySelector('#lobby .lcard:last-child .btn-primary');
+  const code   = document.getElementById('codeInp').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const errEl  = document.getElementById('joinErr');
+  const btn    = document.querySelector('#lobby .lcard:last-child .btn-primary');
   errEl.textContent = '';
-
   if (code.length !== 4) { errEl.textContent = '4桁のコードを入力してください'; return; }
   if (code === myCreateCode) { errEl.textContent = '自分のコードには参加できません'; return; }
 
@@ -387,10 +408,8 @@ async function joinRoom() {
     if (cnt >= 5) { errEl.textContent = '満員です（最大5人）'; btn.disabled = false; btn.textContent = '参加する'; return; }
 
     const newIdx = cnt;
-    const name = getName();
-    await db.ref(`aiu-battle/${code}/players/${newIdx}`).set({ name, score: 0 });
+    await db.ref(`aiu-battle/${code}/players/${newIdx}`).set({ name: getName(), score: 0 });
 
-    // Clean up own room
     roomRef.child('players').off();
     roomRef.child('phase').off();
     db.ref(`aiu-battle/${myCreateCode}`).remove();
@@ -399,7 +418,6 @@ async function joinRoom() {
     isHost   = false;
     roomCode = code;
     roomRef  = db.ref(`aiu-battle/${code}`);
-
     roomRef.child(`players/${myIdx}`).onDisconnect().remove();
 
     phase = 'waiting';
@@ -411,8 +429,8 @@ async function joinRoom() {
       renderWaitList(wSnap.val() || {}, 'waitList2');
     });
     roomRef.child('phase').on('value', pSnap => {
-      if (pSnap.val() === 'answering' && (phase === 'waiting' || phase === 'lobby')) {
-        phase = 'answering';
+      if (pSnap.val() === 'writing' && (phase === 'waiting' || phase === 'lobby')) {
+        phase = 'writing';
         startGameListeners();
       }
     });
@@ -423,7 +441,7 @@ async function joinRoom() {
   }
 }
 
-// ── Host: start game ──────────────────────────────────────────
+// ── Host: start ───────────────────────────────────────────
 async function hostStart() {
   if (!isHost) return;
   const btn = document.getElementById('startBtn');
@@ -431,29 +449,26 @@ async function hostStart() {
   try {
     const name = getName();
     await roomRef.child('players/0/name').set(name);
-
-    const themes = shuffle(THEMES).slice(0, ROUND_N);
+    const theme = shuffle(THEMES)[0];
     await roomRef.update({
-      phase:      'answering',
-      round:      0,
-      themes,
-      roundStart: firebase.database.ServerValue.TIMESTAMP,
-      answers:    null,
-      roundRes:   null,
+      phase:      'writing',
+      theme,
+      words:      null,
+      writingDone: null,
+      revealed:   null,
+      attacked:   null,
+      turn:       0,
+      winner:     null,
     });
   } catch (e) {
-    console.error(e);
-    showToast('開始に失敗しました: ' + (e.message || e));
+    showToast('開始に失敗: ' + (e.message || e));
     btn.disabled = false; btn.textContent = 'ゲーム開始（2人以上）';
   }
 }
 
-// ── Game listeners (both players) ─────────────────────────────
+// ── Game listeners ────────────────────────────────────────
 function startGameListeners() {
-  if (isHost) {
-    const name = getName();
-    roomRef.child('players/0/name').set(name);
-  }
+  if (isHost) roomRef.child('players/0/name').set(getName());
   document.getElementById('lobby').classList.add('hidden');
   document.getElementById('waitScreen').classList.add('hidden');
 
@@ -462,310 +477,322 @@ function startGameListeners() {
     if (!d) return;
     currentData = d;
     const p = d.phase;
-    if (p === 'answering') renderAnswering(d);
-    else if (p === 'reveal') { clearTimer(); renderReveal(d); }
-    else if (p === 'gameEnd') { clearTimer(); renderGameEnd(d); }
+    if (p === 'writing')   renderWriting(d);
+    else if (p === 'attacking') renderAttacking(d);
+    else if (p === 'gameEnd')   renderGameEnd(d);
   });
 }
 
-// ── Answering ─────────────────────────────────────────────────
-function renderAnswering(d) {
-  const round  = d.round || 0;
-  const theme  = (d.themes || [])[round] || '—';
-  const char   = CHARS[myIdx % CHARS.length];
-  const rStart = d.roundStart || Date.now();
-  const answered = !!(d.answers && d.answers[myIdx]);
-
+// ── Writing phase ─────────────────────────────────────────
+function renderWriting(d) {
   hideAll();
-  document.getElementById('answerScreen').classList.remove('hidden');
+  document.getElementById('writeScreen').classList.remove('hidden');
+  document.getElementById('writeTheme').textContent = d.theme || '—';
 
-  document.getElementById('themeText').textContent = theme;
-  document.getElementById('myChar').textContent    = char;
-  document.getElementById('myChar').style.color    = charColor(myIdx);
-  document.getElementById('myCharSpan').textContent = char;
+  const done = (d.writingDone || {})[myIdx];
+  const container = document.getElementById('wordInputs');
 
-  const inp = document.getElementById('ansInp');
-  const sub = document.getElementById('submitBtn');
-  if (answered) {
-    inp.value    = (d.answers[myIdx] || {}).text || '';
-    inp.disabled = true;
-    sub.disabled = true;
-    sub.textContent = '送信済み ✓';
+  if (done) {
+    const myWords = getWords(d.words, myIdx);
+    container.innerHTML = myWords.map((w, i) =>
+      `<div class="word-row">
+        <span class="word-label">語 ${i+1}</span>
+        <input class="word-inp valid" value="${w}" disabled>
+      </div>`
+    ).join('');
+    document.getElementById('doneBtn').disabled = true;
+    document.getElementById('doneBtn').textContent = '送信済み ✓';
   } else {
-    inp.value    = '';
-    inp.disabled = false;
-    sub.disabled = false;
-    sub.textContent = '送信';
-    setTimeout(() => inp.focus(), 150);
+    container.innerHTML = Array.from({length: LIVES}, (_, i) =>
+      `<div class="word-row">
+        <span class="word-label">語 ${i+1}</span>
+        <input class="word-inp" id="wi${i}" type="text" maxlength="10"
+          placeholder="${WORD_MIN}〜${WORD_MAX}文字のひらがな"
+          autocorrect="off" autocomplete="off" oninput="onWordInput()">
+        <span class="word-len" id="wl${i}">0</span>
+      </div>`
+    ).join('');
+    document.getElementById('doneBtn').disabled = true;
+    document.getElementById('doneBtn').textContent = '完了（3語入力後に押してください）';
   }
 
-  renderSubDots(d);
-  startTimer(rStart, d);
+  // Show who has submitted
+  const players = d.players || {};
+  const wDone   = d.writingDone || {};
+  document.getElementById('writeStatus').innerHTML =
+    Object.entries(players).sort((a,b)=>+a[0]-+b[0]).map(([i, p]) =>
+      `<span class="ws-dot ${wDone[i] ? 'done' : ''}">
+        ${wDone[i] ? '✓' : '…'} ${p.name||`P${+i+1}`}
+      </span>`
+    ).join('');
 }
 
-function startTimer(rStart, d) {
-  clearTimer();
-  timerIv = setInterval(() => {
-    const elapsed   = (Date.now() - rStart) / 1000;
-    const remaining = Math.max(0, ANS_SEC - elapsed);
-    const secs      = Math.ceil(remaining);
-    const el        = document.getElementById('timerNum');
-    if (el) {
-      el.textContent  = secs;
-      el.className    = 'timer-num ' + (secs <= 10 ? 'warn' : secs <= 25 ? 'mid' : 'ok');
-    }
-    if (remaining <= 0) {
-      clearTimer();
-      advanceToReveal();
-    }
-  }, 250);
+function onWordInput() {
+  let allValid = true;
+  for (let i = 0; i < LIVES; i++) {
+    const inp = document.getElementById(`wi${i}`);
+    const lenEl = document.getElementById(`wl${i}`);
+    if (!inp) { allValid = false; continue; }
+    const v = inp.value;
+    lenEl.textContent = v.length;
+    const valid = isValidWord(v);
+    inp.className = 'word-inp ' + (v ? (valid ? 'valid' : 'invalid') : '');
+    if (!valid) allValid = false;
+  }
+  document.getElementById('doneBtn').disabled = !allValid;
 }
 
-function clearTimer() {
-  if (timerIv) { clearInterval(timerIv); timerIv = null; }
-}
-
-function advanceToReveal() {
-  db.ref(`aiu-battle/${roomCode}/phase`).transaction(curr => {
-    if (curr === 'answering') return 'reveal';
-    return undefined;
-  });
-}
-
-function renderSubDots(d) {
-  const el = document.getElementById('subDots');
-  if (!el) return;
-  const ps = d.players || {};
-  const ans = d.answers || {};
-  const cnt = Object.keys(ps).length;
-  const done = Object.keys(ans).length;
-  el.innerHTML =
-    Array.from({ length: cnt }, (_, i) =>
-      `<div class="sub-dot ${ans[i] ? 'done' : ''}" title="${(ps[i]||{}).name||''}"></div>`
-    ).join('') +
-    `<span class="sub-lbl">${done}/${cnt} 送信済み</span>`;
-  if (done >= cnt) advanceToReveal();
-}
-
-async function submitAnswer() {
-  const inp  = document.getElementById('ansInp');
-  const text = inp.value.trim();
-  if (!text) { showToast('言葉を入力してください'); return; }
-
-  const sub  = document.getElementById('submitBtn');
-  sub.disabled = true;
-  inp.disabled = true;
+async function doneWriting() {
+  const words = [];
+  for (let i = 0; i < LIVES; i++) {
+    const inp = document.getElementById(`wi${i}`);
+    if (!inp || !isValidWord(inp.value)) { showToast('すべての語を正しく入力してください'); return; }
+    words.push(inp.value);
+  }
+  const btn = document.getElementById('doneBtn');
+  btn.disabled = true; btn.textContent = '送信中…';
 
   try {
-    await roomRef.child(`answers/${myIdx}`).set({
-      text,
-      ts: firebase.database.ServerValue.TIMESTAMP,
-    });
-    sub.textContent = '送信済み ✓';
-    showToast('送信しました！');
+    await roomRef.child(`words/${myIdx}`).set(words);
+    await roomRef.child(`writingDone/${myIdx}`).set(true);
+
+    // Check if all done → transition to attacking
+    const snap = await roomRef.once('value');
+    const d = snap.val() || {};
+    const pCnt = Object.keys(d.players || {}).length;
+    const dCnt = Object.keys(d.writingDone || {}).length;
+    if (dCnt >= pCnt) {
+      db.ref(`aiu-battle/${roomCode}/phase`).transaction(cur => cur === 'writing' ? 'attacking' : undefined);
+    }
   } catch (e) {
-    sub.disabled = false;
-    inp.disabled = false;
-    showToast('送信に失敗しました');
+    showToast('送信に失敗: ' + (e.message || e));
+    btn.disabled = false; btn.textContent = '完了（3語入力後に押してください）';
   }
 }
 
-// ── Reveal ────────────────────────────────────────────────────
-function renderReveal(d) {
-  const round  = d.round || 0;
-  const theme  = (d.themes || [])[round] || '—';
-  const ps     = d.players || {};
-  const ans    = d.answers || {};
-  const rStart = d.roundStart || 0;
-  const pCnt   = Object.keys(ps).length;
-
+// ── Attacking phase ───────────────────────────────────────
+function renderAttacking(d) {
   hideAll();
-  document.getElementById('revealScreen').classList.remove('hidden');
-  document.getElementById('revRoundLbl').textContent = `ラウンド ${round + 1} / ${ROUND_N}`;
-  document.getElementById('revTheme').textContent    = theme;
+  document.getElementById('attackScreen').classList.remove('hidden');
 
-  // Compute round scores
-  const roundScores = {};
+  const players  = d.players  || {};
+  const revealed = d.revealed || {};
+  const attacked = d.attacked || {};
+  const turn     = d.turn     ?? 0;
+  const pCnt     = Object.keys(players).length;
+  const isMyTurn = turn === myIdx && d.winner == null;
+
+  // Status bar
+  const sb = document.getElementById('statusBar');
+  if (d.winner != null) {
+    sb.textContent = `🏆 ${(players[d.winner]||{}).name||`P${d.winner+1}`} の勝ち！`;
+    sb.className = 'status-bar';
+  } else {
+    sb.textContent = isMyTurn
+      ? 'あなたのターン — 文字をタップして攻撃！'
+      : `${(players[turn]||{}).name||`P${turn+1}`} のターン…`;
+    sb.className = 'status-bar' + (isMyTurn ? ' myturn' : '');
+  }
+
+  // Player word cards
+  const pcEl = document.getElementById('pcards');
+  pcEl.innerHTML = '';
   for (let i = 0; i < pCnt; i++) {
-    const a = ans[i];
-    if (!a || !a.ts) {
-      roundScores[i] = 0;
-    } else {
-      const elapsedSec = Math.max(0, (a.ts - rStart) / 1000);
-      roundScores[i] = Math.max(1, ANS_SEC - Math.floor(elapsedSec));
-    }
-  }
+    const p     = players[i] || {};
+    const revArr = getRevArr(revealed, i);
+    const words  = getWords(d.words, i);
+    const elim   = isElim(revArr);
+    const isMe   = i === myIdx;
 
-  // Save scores (host only, once per round)
-  if (isHost && lastSavedRound !== round) {
-    lastSavedRound = round;
-    const existing = d.roundRes || {};
-    if (!existing[round]) {
-      const updates = { [`roundRes/${round}`]: roundScores };
-      // Recompute cumulative from scratch
-      const allRes = { ...existing, [round]: roundScores };
-      const totals = {};
-      for (let i = 0; i < pCnt; i++) totals[i] = 0;
-      Object.values(allRes).forEach(rr => {
-        Object.entries(rr).forEach(([idx, pts]) => {
-          totals[idx] = (totals[idx] || 0) + pts;
-        });
-      });
-      Object.entries(totals).forEach(([idx, tot]) => {
-        updates[`players/${idx}/score`] = tot;
-      });
-      roomRef.update(updates);
-    }
-  }
+    const card = document.createElement('div');
+    card.className = `pcard ${isMe ? 'me' : ''} ${elim ? 'elim' : ''}`;
 
-  // Cumulative for display (including this round)
-  const allRes = { ...(d.roundRes || {}), [round]: roundScores };
-  const cumul  = {};
-  for (let i = 0; i < pCnt; i++) cumul[i] = 0;
-  Object.entries(allRes).forEach(([r, rr]) => {
-    if (+r <= round) Object.entries(rr).forEach(([i, v]) => { cumul[i] = (cumul[i]||0)+v; });
-  });
+    const lives = Array.from({length: LIVES}, (_, j) =>
+      `<div class="life-dot ${revArr[j] ? 'lost' : ''}"></div>`
+    ).join('');
 
-  // Sort by submission time for display
-  const sorted = Array.from({ length: pCnt }, (_, i) => ({
-    idx: i,
-    name: (ps[i] || {}).name || `P${i+1}`,
-    char: CHARS[i % CHARS.length],
-    answer: ans[i] ? ans[i].text : null,
-    ts:    ans[i] ? ans[i].ts   : Infinity,
-    pts:   roundScores[i] || 0,
-  })).sort((a, b) => a.ts - b.ts);
+    const chips = words.map((w, j) => {
+      if (revArr[j]) {
+        const justRev = justRevealedSet.has(`${i}_${j}`);
+        return `<span class="wchip revealed ${justRev ? 'just-revealed' : ''}">${w}</span>`;
+      }
+      if (isMe) {
+        return `<span class="wchip mine">${w}</span>`;
+      }
+      // Hidden: show blanks equal to word length
+      return `<span class="wchip">${'＿'.repeat(w.length)}</span>`;
+    }).join('');
 
-  const rankEmoji = ['👑', '🥈', '🥉', '4️⃣', '5️⃣'];
-  document.getElementById('acards').innerHTML = sorted.map((p, rank) => {
-    const isFirst = rank === 0 && p.answer;
-    return `<div class="acard ${p.idx === myIdx ? 'me' : ''} ${isFirst ? 'gold' : ''}">
-      <div class="ac-rank">${p.answer ? rankEmoji[rank] : '—'}</div>
-      <div class="ac-char" style="background:${charColor(p.idx)}">${p.char}</div>
-      <div class="ac-info">
-        <div class="ac-name">${p.name}${p.idx === myIdx ? ' (あなた)' : ''}</div>
-        <div class="ac-ans ${p.answer ? '' : 'none'}">${p.answer || '（未回答）'}</div>
+    card.innerHTML = `
+      <div class="pcard-header">
+        <span class="pc-name">${p.name||`P${i+1}`}${isMe?' (あなた)':''}${elim?' 💀':''}</span>
+        <div class="pc-lives">${lives}</div>
       </div>
-      <div class="ac-pts ${p.pts === 0 ? 'zero' : ''}">+${p.pts}pt</div>
-    </div>`;
-  }).join('');
-
-  // Score bars
-  const maxScore = Math.max(...Object.values(cumul), 1);
-  const scoreSorted = Object.entries(cumul)
-    .map(([i, v]) => ({ idx: +i, name: (ps[i]||{}).name || `P${+i+1}`, total: v }))
-    .sort((a, b) => b.total - a.total);
-  document.getElementById('scoreList').innerHTML = scoreSorted.map(e =>
-    `<div class="srow">
-      <span class="sname">${e.name}${e.idx === myIdx ? ' 🫵' : ''}</span>
-      <div class="sbar-wrap"><div class="sbar" style="width:${e.total/maxScore*100}%"></div></div>
-      <span class="sval">${e.total}pt</span>
-    </div>`
-  ).join('');
-
-  // Next button / countdown
-  const isLast = round >= ROUND_N - 1;
-  const nextBtn  = document.getElementById('nextBtn');
-  const nextHint = document.getElementById('nextHint');
-  clearNextTimer();
-
-  if (isHost) {
-    nextBtn.textContent = isLast ? '結果を見る' : '次のラウンドへ →';
-    nextBtn.classList.remove('hidden');
-    nextHint.classList.add('hidden');
-  } else {
-    nextBtn.classList.add('hidden');
-    nextHint.classList.remove('hidden');
-    let cnt = 12;
-    document.getElementById('nextCntEl').textContent = cnt;
-    nextIv = setInterval(() => {
-      cnt--;
-      const el = document.getElementById('nextCntEl');
-      if (el) el.textContent = cnt;
-      if (cnt <= 0) clearNextTimer();
-    }, 1000);
+      <div class="pcard-words">${chips}</div>`;
+    pcEl.appendChild(card);
   }
+
+  // Hiragana board
+  const boardEl = document.getElementById('board');
+  boardEl.innerHTML = '';
+  BOARD_ROWS.flat().forEach(ch => {
+    const btn = document.createElement('button');
+    if (!ch) {
+      btn.className = 'bc spacer';
+    } else {
+      const isAttacked = !!attacked[ch];
+      btn.className = `bc ${isAttacked ? 'attacked' : ''} ${isMyTurn && !isAttacked ? 'active' : ''}`;
+      btn.textContent = ch;
+      if (isMyTurn && !isAttacked) btn.onclick = () => attack(ch);
+    }
+    boardEl.appendChild(btn);
+  });
 }
 
-function clearNextTimer() {
-  if (nextIv) { clearInterval(nextIv); nextIv = null; }
-}
+async function attack(char) {
+  if (!currentData) return;
+  const d = currentData;
+  if (d.turn !== myIdx || d.winner != null) return;
 
-function hostAdvance() {
-  if (!isHost || !currentData) return;
-  const round  = currentData.round || 0;
-  const isLast = round >= ROUND_N - 1;
-  clearNextTimer();
+  const players  = d.players  || {};
+  const revealed = d.revealed || {};
+  const words    = d.words    || {};
+  const pCnt     = Object.keys(players).length;
 
-  if (isLast) {
-    roomRef.child('phase').set('gameEnd');
-  } else {
-    roomRef.update({
-      phase:      'answering',
-      round:      round + 1,
-      answers:    null,
-      roundStart: firebase.database.ServerValue.TIMESTAMP,
+  // Find all newly revealed cards
+  const newRevArr = {};
+  for (let i = 0; i < pCnt; i++) {
+    newRevArr[i] = getRevArr(revealed, i).slice();
+  }
+
+  justRevealedSet.clear();
+  let anyReveal = false;
+
+  for (let i = 0; i < pCnt; i++) {
+    const ws = getWords(words, i);
+    for (let j = 0; j < LIVES; j++) {
+      if (!newRevArr[i][j] && ws[j] && ws[j].includes(char)) {
+        newRevArr[i][j] = true;
+        justRevealedSet.add(`${i}_${j}`);
+        anyReveal = true;
+      }
+    }
+  }
+
+  // Who is still alive after this attack?
+  const alive = [];
+  for (let i = 0; i < pCnt; i++) {
+    if (!isElim(newRevArr[i])) alive.push(i);
+  }
+
+  const updates = { [`attacked/${char}`]: true };
+
+  // Write new revealed state
+  for (let i = 0; i < pCnt; i++) {
+    for (let j = 0; j < LIVES; j++) {
+      updates[`revealed/${i}/${j}`] = newRevArr[i][j];
+    }
+  }
+
+  if (alive.length <= 1) {
+    // Game over
+    updates.winner = alive.length === 1 ? alive[0] : -1;
+    updates.phase  = 'gameEnd';
+  } else if (!anyReveal) {
+    // Miss → pass turn (skip eliminated players)
+    let next = myIdx;
+    for (let k = 1; k <= pCnt; k++) {
+      next = (myIdx + k) % pCnt;
+      if (!isElim(newRevArr[next])) break;
+    }
+    updates.turn = next;
+  }
+  // anyReveal + alive > 1 → chain attack (turn unchanged)
+
+  await roomRef.update(updates);
+
+  if (anyReveal) {
+    const names = [];
+    justRevealedSet.forEach(key => {
+      const [pi, wi] = key.split('_').map(Number);
+      names.push(`${(players[pi]||{}).name||`P${pi+1}`}「${getWords(words, pi)[wi]||'?'}」`);
     });
+    const chain = alive.length > 1 && updates.turn === undefined;
+    showToast(names.join('・') + ' が公開！' + (chain ? ' もう一度攻撃！' : ''));
+  } else {
+    showToast(`「${char}」はどこにも使われていない！ターン交代`);
   }
 }
 
-// ── Game end ──────────────────────────────────────────────────
+// ── Game end ──────────────────────────────────────────────
 function renderGameEnd(d) {
   hideAll();
   document.getElementById('gameEndScreen').classList.remove('hidden');
 
-  const ps = d.players || {};
-  const sorted = Object.entries(ps)
-    .map(([i, p]) => ({ idx: +i, name: p.name || `P${+i+1}`, score: p.score || 0 }))
-    .sort((a, b) => b.score - a.score);
+  const players  = d.players  || {};
+  const revealed = d.revealed || {};
+  const words    = d.words    || {};
+  const pCnt     = Object.keys(players).length;
+  const winner   = d.winner;
 
-  const medals = ['🏆', '🥈', '🥉', '4️⃣', '5️⃣'];
-  document.getElementById('podium').innerHTML = sorted.map((p, i) =>
-    `<div class="pdi ${i === 0 ? 'rank1' : ''}">
-      <div class="pd-medal">${medals[i]}</div>
-      <div class="pd-name">${p.name}${p.idx === myIdx ? ' (あなた)' : ''}</div>
-      <div class="pd-score">${p.score}pt</div>
-    </div>`
-  ).join('');
+  // Sort: winner first, then by lives remaining
+  const order = Array.from({length: pCnt}, (_, i) => {
+    const revArr = getRevArr(revealed, i);
+    return { idx: i, livesLeft: revArr.filter(v=>!v).length };
+  }).sort((a,b) => {
+    if (a.idx === winner) return -1;
+    if (b.idx === winner) return  1;
+    return b.livesLeft - a.livesLeft;
+  });
+
+  const medals = ['🏆','🥈','🥉','4位','5位'];
+  document.getElementById('podium').innerHTML = order.map((p, rank) => {
+    const name  = (players[p.idx]||{}).name || `P${p.idx+1}`;
+    const ws    = getWords(words, p.idx);
+    const revArr = getRevArr(revealed, p.idx);
+    const wordStr = ws.map((w, j) => revArr[j] ? `<del>${w}</del>` : `<strong>${w}</strong>`).join(' ');
+    return `<div class="pdi ${rank===0?'rank1':''}">
+      <div class="pd-medal">${medals[rank]}</div>
+      <div>
+        <div class="pd-name">${name}${p.idx===myIdx?' (あなた)':''}</div>
+        <div class="pd-score" style="font-size:12px">${wordStr}</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function requestRematch() {
   if (!roomRef) return;
   roomRef.child(`rematch/${myIdx}`).set(true);
   showToast('リマッチを要求しました…');
-
   roomRef.child('rematch').on('value', snap => {
-    const rm = snap.val() || {};
-    const d  = currentData;
+    const rm  = snap.val() || {};
+    const d   = currentData;
     if (!d) return;
     const cnt = Object.keys(d.players || {}).length;
     if (Object.keys(rm).length >= cnt) {
       roomRef.child('rematch').off();
       if (isHost) {
-        const themes = shuffle(THEMES).slice(0, ROUND_N);
-        const resetPs = {};
-        Object.entries(d.players || {}).forEach(([i, p]) => {
-          resetPs[i] = { name: p.name, score: 0 };
-        });
-        lastSavedRound = -1;
+        const theme = shuffle(THEMES)[0];
         roomRef.update({
-          phase:      'answering',
-          round:      0,
-          themes,
-          roundStart: firebase.database.ServerValue.TIMESTAMP,
-          answers:    null,
-          roundRes:   null,
+          phase:      'writing',
+          theme,
+          words:      null,
+          writingDone: null,
+          revealed:   null,
+          attacked:   null,
+          turn:       0,
+          winner:     null,
           rematch:    null,
-          players:    resetPs,
         });
       }
     }
   });
 }
 
-// ── Utilities ─────────────────────────────────────────────────
+// ── Utilities ─────────────────────────────────────────────
 function hideAll() {
-  ['lobby','waitScreen','answerScreen','revealScreen','gameEndScreen']
+  ['lobby','waitScreen','writeScreen','attackScreen','gameEndScreen']
     .forEach(id => document.getElementById(id).classList.add('hidden'));
 }
 
@@ -774,7 +801,7 @@ function showToast(msg) {
   const el = document.getElementById('toast');
   el.textContent = msg; el.classList.add('show');
   clearTimeout(toastTmr);
-  toastTmr = setTimeout(() => el.classList.remove('show'), 2800);
+  toastTmr = setTimeout(() => el.classList.remove('show'), 3000);
 }
 </script>
 <script>if('serviceWorker'in navigator)navigator.serviceWorker.register('/friend-games/service-worker.js');</script>
