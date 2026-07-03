@@ -422,7 +422,9 @@ function shuffle(a) {
   return r;
 }
 function getName() {
-  return (document.getElementById('nameInp').value || '').trim() || `プレイヤー${myIdx + 1}`;
+  const n = (document.getElementById('nameInp').value || '').trim() || `プレイヤー${myIdx + 1}`;
+  try { localStorage.setItem('fg-nickname', n); } catch(_) {}
+  return n;
 }
 function showToast(msg, dur = 2200) {
   const t = document.getElementById('toast');
@@ -475,6 +477,12 @@ function calcMove(fromPos, steps, dir, courseLen, players) {
 }
 
 // ── Lobby init ────────────────────────────────────────────
+// ── Nickname persistence ──────────────────────────────────
+try {
+  const saved = localStorage.getItem('fg-nickname');
+  if (saved) document.getElementById('nameInp').value = saved;
+} catch(_) {}
+
 (function initLobby() {
   myCreateCode = rndCode();
   myIdx   = 0;
